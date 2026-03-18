@@ -1,0 +1,58 @@
+{
+  "budgets": {
+    "1000": {
+      "line_count": 32,
+      "symbols": [
+        "AuthController.login",
+        "AuthService.validate_token"
+      ],
+      "token_count": 212,
+      "truncated": false
+    },
+    "2000": {
+      "line_count": 32,
+      "symbols": [
+        "AuthController.login",
+        "AuthService.validate_token"
+      ],
+      "token_count": 212,
+      "truncated": false
+    },
+    "500": {
+      "line_count": 32,
+      "symbols": [
+        "AuthController.login",
+        "AuthService.validate_token"
+      ],
+      "token_count": 212,
+      "truncated": false
+    }
+  },
+  "metrics": {
+    "usage_query_top_hit_is_caller": true
+  },
+  "queries": {
+    "trace login -> token validation": [
+      "AuthController.login",
+      "AuthService.validate_token"
+    ],
+    "where are permissions checked": [
+      "AuthController.login",
+      "PermissionChecker.check_permissions",
+      "PermissionChecker.has_scope"
+    ],
+    "where is refresh token generated": [
+      "AuthService.generate_refresh_token",
+      "AuthController.login",
+      "AuthService.login"
+    ],
+    "where is session expiration handled": [
+      "SessionManager.handleSessionExpiration"
+    ],
+    "where is token validation enforced": [
+      "AuthService.enforce_token_validation",
+      "AuthService.validate_token",
+      "WebSessionService.validateBrowserToken"
+    ]
+  }
+}

@@ -1,0 +1,7 @@
+pattern: data_and_ml.inference_endpoints
+id: inference_endpoints
+model_ref: inference_endpoints_model_ref
+input_schema:
+  type: object
+output_schema:
+  type: object

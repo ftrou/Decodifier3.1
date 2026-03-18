@@ -1,0 +1,10 @@
+pattern: backend.notification_triggers
+id: welcome_notification
+event: user.created
+channels:
+- email
+template_ref: welcome_email
+audience:
+  segment: all
+throttle:
+  per_user_per_day: 2

@@ -1,0 +1,7 @@
+pattern: data_and_ml.training_loops
+id: training_loops
+model_ref: training_loops_model_ref
+dataset: users_dataset
+epochs: 1
+optimizer:
+  optimizer: training_loops_optimizer

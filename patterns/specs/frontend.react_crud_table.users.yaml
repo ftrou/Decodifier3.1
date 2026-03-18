@@ -1,0 +1,15 @@
+pattern: frontend.react_crud_table
+id: users_table
+model_ref: backend.model:user
+columns:
+  - {name: email, type: string, required: true}
+  - {name: name, type: string, required: true}
+  - {name: created_at, type: datetime}
+data_source: /users
+filters:
+  - {name: search, type: string}
+pagination:
+  page_size: 10
+  mode: client
+row_actions: [view, delete]
+optimistic_updates: true

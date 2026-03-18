@@ -1,0 +1,5 @@
+pattern: frontend.sidebar_navigation
+id: sidebar_navigation
+items:
+- label: Users
+  href: /users

@@ -1,0 +1,6 @@
+pattern: backend.idempotency_rules
+id: create_user_idempotency
+scope: endpoint
+key_source: headers.Idempotency-Key
+ttl: 24h
+conflict_behavior: return_previous

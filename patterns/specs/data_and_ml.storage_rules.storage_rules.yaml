@@ -1,0 +1,5 @@
+pattern: data_and_ml.storage_rules
+id: storage_rules
+location: s3://datasets/users
+format: parquet
+access: private

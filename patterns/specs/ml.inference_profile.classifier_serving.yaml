@@ -1,0 +1,12 @@
+pattern: ml.inference_profile
+id: classifier_serving
+model_ref: text_classifier_v1:int8
+runtime: onnxruntime
+hardware: gpu:t4
+latency_sla: 120ms
+max_batch_size: 16
+concurrency: 8
+scaling:
+  min_replicas: 1
+  max_replicas: 5
+  target_utilization: 0.6

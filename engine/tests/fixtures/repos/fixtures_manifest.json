@@ -1,0 +1,98 @@
+{
+  "repos": [
+    {
+      "name": "harbor_api",
+      "description": "Python API fixture with direct auth, permission, and session flows.",
+      "path": "harbor_api",
+      "query_types": {
+        "where is token validation enforced": "definition",
+        "where are permissions checked": "caller",
+        "where is session expiration handled": "definition",
+        "where is refresh token generated": "definition",
+        "trace login -> token validation": "trace",
+        "where is oauth callback state validated": "no_answer"
+      },
+      "queries": {
+        "where is token validation enforced": [
+          "enforce_token_validation"
+        ],
+        "where are permissions checked": [
+          "list_projects",
+          "require_project_permission"
+        ],
+        "where is session expiration handled": [
+          "handle_session_expiration"
+        ],
+        "where is refresh token generated": [
+          "generate_refresh_token"
+        ],
+        "trace login -> token validation": [
+          "login_user",
+          "enforce_token_validation"
+        ],
+        "where is oauth callback state validated": []
+      }
+    },
+    {
+      "name": "atlas_workspace",
+      "description": "Noisy monorepo fixture with caller-site permission checks and cross-language auth/session logic.",
+      "path": "atlas_workspace",
+      "query_types": {
+        "where is token validation enforced": "definition",
+        "where are permissions checked": "caller",
+        "where is session expiration handled": "definition",
+        "where is refresh token generated": "definition",
+        "trace login -> token validation": "trace",
+        "where is oauth callback state validated": "no_answer"
+      },
+      "queries": {
+        "where is token validation enforced": [
+          "TokenVerifier.enforceTokenValidation"
+        ],
+        "where are permissions checked": [
+          "TeamController.listMembers",
+          "PermissionGate.assertPermission"
+        ],
+        "where is session expiration handled": [
+          "SessionExpiryManager.handleSessionExpiration"
+        ],
+        "where is refresh token generated": [
+          "SessionService.generateRefreshToken"
+        ],
+        "trace login -> token validation": [
+          "AuthController.loginWithPassword",
+          "TokenVerifier.enforceTokenValidation"
+        ],
+        "where is oauth callback state validated": []
+      }
+    },
+    {
+      "name": "fastapi_full_stack_backend",
+      "description": "FastAPI full-stack template backend with JWT auth, route-level ownership checks, and no refresh-token flow.",
+      "path": "../../../../../fastapirepo/my-full-stack/backend",
+      "query_types": {
+        "where is token validation enforced": "definition",
+        "where are permissions checked": "caller",
+        "where is session expiration handled": "no_answer",
+        "where is refresh token generated": "no_answer",
+        "trace login -> token validation": "trace",
+        "where is oauth callback state validated": "no_answer"
+      },
+      "queries": {
+        "where is token validation enforced": [
+          "get_current_user"
+        ],
+        "where are permissions checked": [
+          "read_item"
+        ],
+        "where is session expiration handled": [],
+        "where is refresh token generated": [],
+        "trace login -> token validation": [
+          "login_access_token",
+          "get_current_user"
+        ],
+        "where is oauth callback state validated": []
+      }
+    }
+  ]
+}

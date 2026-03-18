@@ -1,0 +1,6 @@
+pattern: agent_ai.tool_schemas
+id: tool_schemas
+input_schema:
+  type: object
+output_schema:
+  type: object

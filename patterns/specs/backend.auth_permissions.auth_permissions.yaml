@@ -1,0 +1,14 @@
+pattern: backend.auth_permissions
+id: auth_permissions
+actors:
+- admin
+- editor
+resources:
+- user
+actions:
+- create
+- read
+- update
+enforcement:
+  type: rbac
+  location: gateway

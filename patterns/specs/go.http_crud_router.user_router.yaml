@@ -1,0 +1,12 @@
+pattern: go.http_crud_router
+id: user_router
+resource: user
+base_path: /users
+methods: [create, list, read, update, delete]
+model_schema:
+  request: backend.model:user
+  response: backend.model:user
+middleware:
+  - logging
+auth:
+  roles: [admin, editor]

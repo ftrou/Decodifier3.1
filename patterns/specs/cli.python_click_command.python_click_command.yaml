@@ -1,0 +1,6 @@
+pattern: cli.python_click_command
+id: python_click_command
+summary: python click command command
+options:
+- options: python_click_command_options_item
+handler: handle_python_click_command

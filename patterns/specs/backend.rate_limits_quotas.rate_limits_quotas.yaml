@@ -1,0 +1,10 @@
+pattern: backend.rate_limits_quotas
+id: per_user_standard
+target: user
+window: 1m
+max_requests: 120
+burst: 30
+scope:
+  - POST /users
+  - GET /users
+  - GET /users/{id}

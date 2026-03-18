@@ -1,0 +1,7 @@
+pattern: frontend.data_tables_sort_filter_paginate
+id: data_tables_sort_filter_paginate
+columns:
+- name: email
+  type: string
+  sortable: true
+data_source: /api/users

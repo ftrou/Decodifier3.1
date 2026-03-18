@@ -1,0 +1,7 @@
+pattern: agent_ai.memory_schemas
+id: memory_schemas
+modality: text
+schema:
+- name: id
+  type: string
+  required: true

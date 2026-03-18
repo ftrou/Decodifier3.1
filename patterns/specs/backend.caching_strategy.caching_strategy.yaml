@@ -1,0 +1,8 @@
+pattern: backend.caching_strategy
+id: user_profile_cache
+scope: model
+key_template: user:{id}
+ttl: 15m
+invalidation_rules:
+  - event:user.updated
+  - event:user.deleted

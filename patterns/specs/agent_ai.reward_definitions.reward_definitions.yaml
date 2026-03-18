@@ -1,0 +1,6 @@
+pattern: agent_ai.reward_definitions
+id: reward_definitions
+inputs:
+- email
+- plan
+formula: precision * 0.5 + recall * 0.5

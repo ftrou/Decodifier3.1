@@ -1,0 +1,11 @@
+pattern: infra.deployment
+id: user-service
+image: ghcr.io/example/user-service:latest
+replicas: 2
+env:
+  DATABASE_URL: ${DATABASE_URL}
+  APP_ENV: production
+ports: [8000]
+resources:
+  cpu: "500m"
+  memory: "512Mi"

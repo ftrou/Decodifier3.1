@@ -1,0 +1,9 @@
+pattern: data_and_ml.model_definitions
+id: model_definitions
+task: model_definitions_task
+architecture: transformer
+inputs:
+- email
+- plan
+outputs:
+- encoded_email

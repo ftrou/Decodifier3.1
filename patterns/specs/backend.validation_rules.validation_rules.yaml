@@ -1,0 +1,6 @@
+pattern: backend.validation_rules
+id: validation_rules
+scope: request
+expression: value != ''
+severity: error
+message: validation failed

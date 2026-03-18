@@ -1,0 +1,16 @@
+pattern: backend.a_b_experiment_wiring
+id: onboarding_experiment
+hypothesis: Streamlined onboarding will improve activation
+variants:
+  - name: control
+    allocation: 50
+  - name: streamlined
+    allocation: 50
+metrics:
+  - activation_rate
+  - time_to_first_action
+population:
+  include:
+    - segment: new_users
+      country: US
+duration: 30d

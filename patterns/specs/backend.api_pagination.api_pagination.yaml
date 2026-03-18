@@ -1,0 +1,5 @@
+pattern: backend.api_pagination
+id: api_pagination
+style: offset
+page_size: 20
+max_page_size: 100

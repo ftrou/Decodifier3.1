@@ -1,0 +1,8 @@
+pattern: agent_ai.task_definitions
+id: task_definitions
+goal: triage support tickets
+inputs:
+- email
+- plan
+success_criteria:
+- first_response_under_2m

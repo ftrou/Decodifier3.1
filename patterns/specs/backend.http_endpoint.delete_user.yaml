@@ -1,0 +1,19 @@
+pattern: backend.http_endpoint
+id: delete_user
+method: DELETE
+path: /users/{id}
+inputs:
+  path_params:
+    id:
+      type: uuid
+      required: true
+outputs:
+  204:
+    description: User deleted
+constraints:
+  - idempotent: true
+  - rate_limit:
+      max_requests: 60
+      window_seconds: 60
+auth:
+  roles: [admin]

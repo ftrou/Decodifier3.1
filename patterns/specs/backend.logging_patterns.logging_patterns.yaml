@@ -1,0 +1,21 @@
+pattern: backend.logging_patterns
+id: user_events
+level: INFO
+schema:
+  - name: event
+    type: string
+    required: true
+  - name: user_id
+    type: uuid
+    required: true
+  - name: request_id
+    type: string
+    required: true
+  - name: timestamp
+    type: datetime
+    required: true
+redaction:
+  - email
+sinks:
+  - stdout
+  - snowflake.users_events

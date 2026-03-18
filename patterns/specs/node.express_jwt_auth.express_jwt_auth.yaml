@@ -1,0 +1,5 @@
+pattern: node.express_jwt_auth
+id: express_jwt_auth
+issuer: https://auth.example.com/
+audience: api://default
+jwks_uri: https://auth.example.com/.well-known/jwks.json

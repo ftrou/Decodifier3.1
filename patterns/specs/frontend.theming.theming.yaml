@@ -1,0 +1,5 @@
+pattern: frontend.theming
+id: theming
+tokens:
+  primary: '#0f172a'
+  accent: '#06b6d4'

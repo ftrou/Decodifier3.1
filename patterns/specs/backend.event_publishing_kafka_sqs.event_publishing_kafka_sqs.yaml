@@ -1,0 +1,18 @@
+pattern: backend.event_publishing_kafka_sqs
+id: user.created
+broker: kafka
+key_schema:
+  fields:
+    - name: user_id
+      type: uuid
+value_schema:
+  type: json
+  fields:
+    - name: user_id
+      type: uuid
+    - name: email
+      type: string
+ordering: true
+retries:
+  max_attempts: 5
+  backoff: 2s

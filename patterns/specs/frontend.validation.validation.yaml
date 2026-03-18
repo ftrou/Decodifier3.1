@@ -1,0 +1,6 @@
+pattern: frontend.validation
+id: validation
+scope: component
+rules:
+- field: email
+  rule: required

@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+pydantic
+python-multipart
+watchdog
+sqlalchemy
+chromadb
+python-dotenv
+sentence-transformers
+unidiff
+pyyaml
+requests
+pytest

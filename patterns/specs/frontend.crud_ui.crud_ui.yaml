@@ -1,0 +1,6 @@
+pattern: frontend.crud_ui
+id: crud_ui
+model_ref: crud_ui_model_ref
+views:
+- list
+- detail

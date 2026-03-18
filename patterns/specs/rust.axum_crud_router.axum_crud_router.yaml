@@ -1,0 +1,10 @@
+pattern: rust.axum_crud_router
+id: axum_crud_router
+resource: user
+base_path: /axum-crud-router
+handler_refs:
+- List
+- Create
+model_schema:
+  request: user
+  response: user

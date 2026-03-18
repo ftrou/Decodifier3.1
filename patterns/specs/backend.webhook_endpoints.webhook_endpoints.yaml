@@ -1,0 +1,9 @@
+pattern: backend.webhook_endpoints
+id: webhook_endpoints
+provider: stripe
+path: /webhook-endpoints
+signature_scheme: hmac-sha256
+payload_schema:
+  type: object
+responses:
+  '200': ok

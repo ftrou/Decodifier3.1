@@ -1,0 +1,4 @@
+pattern: node.queue_worker.bullmq
+id: bullmq
+queue: user-events
+processor: process_bullmq

@@ -1,0 +1,4 @@
+pattern: infra.ssl_and_domains
+id: ssl_and_domains
+domain: users.example.com
+certificate: arn:aws:acm:region:account:cert/example

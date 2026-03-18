@@ -1,0 +1,15 @@
+pattern: backend.model
+id: user
+fields:
+  - {name: id, type: uuid, required: true, primary_key: true}
+  - {name: email, type: string, required: true, unique: true, validation: email}
+  - {name: name, type: string, required: true}
+  - {name: created_at, type: datetime, required: true, default: now}
+relations: []
+crud_rules:
+  allowed_ops: [create, read, update, delete]
+  hooks:
+    before_create: [validate_email_unique]
+    after_create: [emit_user_created]
+indexes:
+  - {fields: [email], unique: true}

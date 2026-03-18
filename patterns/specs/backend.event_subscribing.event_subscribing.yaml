@@ -1,0 +1,8 @@
+pattern: backend.event_subscribing
+id: user_deletion_consumer
+source_event: user.deleted
+handler: handle_user_deletion
+concurrency: 4
+dlq:
+  topic: user.deleted.dlq
+offsets: at_least_once

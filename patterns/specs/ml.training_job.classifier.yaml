@@ -1,0 +1,19 @@
+pattern: ml.training_job
+id: classifier_training
+model_ref: text_classifier_v1
+dataset: s3://datasets/text-classification/train.parquet
+objective: accuracy
+hyperparams:
+  learning_rate: 0.0003
+  batch_size: 64
+  epochs: 5
+resources:
+  gpus: 1
+  cpu: "8"
+  memory: 32Gi
+checkpoints:
+  path: s3://models/text-classifier/checkpoints
+  interval: 10m
+eval_metrics:
+  - accuracy
+  - f1

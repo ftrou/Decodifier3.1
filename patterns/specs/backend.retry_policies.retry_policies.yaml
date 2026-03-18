@@ -1,0 +1,6 @@
+pattern: backend.retry_policies
+id: default_retry
+strategy: exponential
+initial_interval: 1s
+max_interval: 30s
+max_attempts: 3

@@ -1,0 +1,6 @@
+pattern: backend.exception_handling
+id: validation_error
+http_status: 400
+message: validation failed
+logging_level: WARN
+retries: 0

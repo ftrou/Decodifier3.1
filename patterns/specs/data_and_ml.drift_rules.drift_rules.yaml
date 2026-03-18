@@ -1,0 +1,7 @@
+pattern: data_and_ml.drift_rules
+id: drift_rules
+monitored_features:
+- country
+- plan
+method: ks_test
+threshold: 0.2

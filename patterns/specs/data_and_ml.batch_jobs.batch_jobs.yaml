@@ -1,0 +1,3 @@
+pattern: data_and_ml.batch_jobs
+id: batch_jobs
+entrypoint: python app.py

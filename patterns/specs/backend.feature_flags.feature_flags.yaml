@@ -1,0 +1,10 @@
+pattern: backend.feature_flags
+id: enable_streamlined_onboarding
+description: Gate the new onboarding flow
+default_state: false
+rollout:
+  percentage: 25
+  segments:
+    - country: US
+safeguards:
+  - auto_disable_on_error_spike

@@ -1,0 +1,4 @@
+pattern: frontend.live_previews
+id: live_previews
+data_source: /api/users
+render_component: PreviewCard

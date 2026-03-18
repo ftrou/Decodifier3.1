@@ -1,0 +1,8 @@
+pattern: ml.quantization_job
+id: quantize_classifier
+source_model: text_classifier_v1
+method: static
+target_precision: int8
+calibration_dataset: s3://datasets/text-classification/calibration.parquet
+target_hardware: nvidia_t4
+accuracy_tolerance: 0.015

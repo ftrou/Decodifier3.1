@@ -1,0 +1,7 @@
+pattern: infra.load_balancers
+id: load_balancers
+listeners:
+- protocol: http
+  port: 80
+targets:
+- user-service

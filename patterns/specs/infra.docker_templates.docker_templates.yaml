@@ -1,0 +1,4 @@
+pattern: infra.docker_templates
+id: docker_templates
+base_image: python:3.11-slim
+entrypoint: python app.py

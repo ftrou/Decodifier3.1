@@ -1,0 +1,6 @@
+pattern: backend.scheduled_tasks
+id: prune_expired_sessions
+cron: "0 * * * *"
+timezone: UTC
+action: prune_expired_sessions
+sla: 2m

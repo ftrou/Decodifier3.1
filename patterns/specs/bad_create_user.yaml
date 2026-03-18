@@ -1,0 +1,9 @@
+# Missing required 'method', 'path', and wrong type for 'request_body'
+skip: true
+kind: backend.http_endpoint
+
+handler_name: 123       # <-- invalid (should be a string)
+description: "This spec is broken on purpose."
+
+request_body:
+  required: not_boolean   # <-- invalid type

@@ -1,0 +1,20 @@
+pattern: backend.http_endpoint
+id: create_user
+method: POST
+path: /users
+inputs:
+  body:
+    type: object
+    schema_ref: backend.model:user
+outputs:
+  201:
+    description: User created
+    schema_ref: backend.model:user
+  400:
+    description: Validation error
+constraints:
+  - idempotency:
+      key: body.email
+  - rate_limit: 50/minute per ip
+auth:
+  roles: [admin]

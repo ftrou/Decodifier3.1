@@ -1,0 +1,2576 @@
+version: 0.1
+notes: Expanded to include all patterns from patterns/schemas.yaml. The original four v1 slugs stay the same; the remaining
+  patterns use a category-based slug such as data_ml.etl_pipelines.
+supported_patterns:
+- backend.http_endpoint
+- backend.model
+- backend.validation_rules
+- backend.auth_permissions
+- backend.rate_limits_quotas
+- backend.request_response_schemas
+- backend.logging_patterns
+- backend.exception_handling
+- backend.background_jobs
+- backend.scheduled_tasks
+- backend.webhook_endpoints
+- backend.notification_triggers
+- backend.api_pagination
+- backend.db_migrations
+- backend.caching_strategy
+- backend.event_publishing_kafka_sqs
+- backend.event_subscribing
+- backend.retry_policies
+- backend.idempotency_rules
+- backend.security_policies
+- backend.config_schemas
+- backend.feature_flags
+- backend.a_b_experiment_wiring
+- go.http_crud_router
+- rust.axum_crud_router
+- java.spring_crud_controller
+- node.express_jwt_auth
+- go.http_jwt_middleware
+- node.queue_worker.bullmq
+- python.background_worker.celery
+- node.kafka_consumer
+- go.nats_subscriber
+- frontend.form
+- frontend.validation
+- frontend.data_tables_sort_filter_paginate
+- frontend.crud_ui
+- frontend.modals_dialogs
+- frontend.hero_sections_layouts
+- frontend.sidebar_navigation
+- frontend.theming
+- frontend.global_state_slices
+- frontend.api_clients
+- frontend.error_boundaries
+- frontend.toast_notifications
+- frontend.responsive_rules
+- frontend.component_libraries
+- frontend.live_previews
+- frontend.real_time_listeners
+- frontend.settings_pages
+- frontend.react_crud_table
+- frontend.react_form_validation
+- data_and_ml.etl_pipelines
+- data_and_ml.feature_preprocessing
+- data_and_ml.validation_checks
+- data_and_ml.model_definitions
+- data_and_ml.training_loops
+- data_and_ml.fine_tuning_config
+- data_and_ml.inference_endpoints
+- data_ml.fastapi_inference_api
+- data_and_ml.monitoring_metrics
+- data_and_ml.drift_rules
+- data_and_ml.batch_jobs
+- data_and_ml.data_schemas
+- data_and_ml.storage_rules
+- ml.training_job
+- ml.eval_job
+- ml.quantization_job
+- ml.inference_profile
+- agent_ai.task_definitions
+- agent_ai.tool_schemas
+- agent_ai.memory_schemas
+- agent_ai.policy_rules
+- agent_ai.safety_constraints
+- agent_ai.self_play_loops
+- agent_ai.reward_definitions
+- agent_ai.prompt_templates
+- agent_ai.evaluation_scripts
+- agent_ai.llm_chat_fastapi
+- agent_ai.llm_chat_express
+- infra.docker_templates
+- infra.deployment
+- infra.autoscaling
+- infra.load_balancers
+- infra.metrics_dashboards
+- infra.log_pipelines
+- infra.secrets_management
+- infra.permissions_iam
+- infra.ssl_and_domains
+- infra.cicd_workflows
+- infra.k8s_deployment_service
+- infra.docker_compose_service
+- cli.python_click_command
+- cli.node_yargs_command
+outputs:
+- fastapi
+- react
+- tests
+- docker
+- k8s
+schemas:
+- pattern: backend.http_endpoint
+  description: Declarative REST/RPC endpoint contract.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Unique slug
+  - name: method
+    type: enum[GET, POST, PUT, PATCH, DELETE]
+    required: true
+    description: HTTP verb
+  - name: path
+    type: string
+    required: true
+    description: URI template with params
+  - name: inputs
+    type: object
+    required: true
+    description: Request body/query/schema refs
+  - name: outputs
+    type: object
+    required: true
+    description: Success payload + status codes
+  - name: body_style
+    type: enum[flat, wrapped]
+    required: false
+    description: Request body shape (default flat)
+  - name: body_wrapper_key
+    type: string
+    required: false
+    description: Wrapper key when body_style=wrapped
+  - name: constraints
+    type: list[string]
+    required: false
+    description: Idempotency, rate limit, pagination
+  - name: auth
+    type: object
+    required: false
+    description: Roles/scopes and enforcement points
+  outputs_template: backend_endpoint
+- pattern: backend.model
+  description: Data model with CRUD policies.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Model slug
+  - name: fields
+    type: list[field]
+    required: true
+    description: Name/type/validation/default
+  - name: relations
+    type: list[relation]
+    required: false
+    description: Foreign keys/refs
+  - name: crud_rules
+    type: object
+    required: true
+    description: Allowed ops + hooks
+  - name: indexes
+    type: list[index]
+    required: false
+    description: Index definitions
+  - name: soft_delete
+    type: boolean
+    required: false
+    description: Enable tombstones
+  outputs_template: backend_model
+- pattern: backend.validation_rules
+  description: Cross-field and invariants for inputs/models.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Rule slug
+  - name: scope
+    type: enum[field, model, request]
+    required: true
+    description: Where rule applies
+  - name: expression
+    type: string
+    required: true
+    description: DSL or predicate
+  - name: severity
+    type: enum[error, warning]
+    required: true
+    description: Enforcement level
+  - name: message
+    type: string
+    required: true
+    description: User/dev facing message
+  - name: remediation
+    type: string
+    required: false
+    description: Suggested fix
+  outputs_template: backend_model
+- pattern: backend.auth_permissions
+  description: Role/scope-based access matrix.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Policy slug
+  - name: actors
+    type: list[string]
+    required: true
+    description: Roles/users/groups
+  - name: resources
+    type: list[string]
+    required: true
+    description: Protected resources
+  - name: actions
+    type: list[string]
+    required: true
+    description: CRUD/action verbs
+  - name: conditions
+    type: list[string]
+    required: false
+    description: Attribute-based checks
+  - name: enforcement
+    type: object
+    required: true
+    description: Where/how enforced
+  outputs_template: backend_endpoint
+- pattern: backend.rate_limits_quotas
+  description: Throttling and quota rules.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Limit slug
+  - name: target
+    type: enum[ip, user, api_key, org]
+    required: true
+    description: Subject of limit
+  - name: window
+    type: duration
+    required: true
+    description: Time window
+  - name: max_requests
+    type: integer
+    required: true
+    description: Allowed hits per window
+  - name: burst
+    type: integer
+    required: false
+    description: Burst allowance
+  - name: scope
+    type: list[string]
+    required: true
+    description: Paths/endpoints covered
+  outputs_template: backend_endpoint
+- pattern: backend.request_response_schemas
+  description: Reusable payload definitions.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Schema name
+  - name: version
+    type: string
+    required: false
+    description: Schema version
+  - name: properties
+    type: list[field]
+    required: true
+    description: Fields with types/constraints
+  - name: examples
+    type: list[object]
+    required: false
+    description: Example payloads
+  - name: invariants
+    type: list[string]
+    required: false
+    description: Cross-field rules
+  outputs_template: backend_endpoint
+- pattern: backend.logging_patterns
+  description: Structured log contracts.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Event name
+  - name: level
+    type: enum[DEBUG, INFO, WARN, ERROR]
+    required: true
+    description: Severity
+  - name: schema
+    type: list[field]
+    required: true
+    description: Structured fields
+  - name: redaction
+    type: list[string]
+    required: false
+    description: Sensitive field policy
+  - name: sinks
+    type: list[string]
+    required: false
+    description: Destinations/indices
+  outputs_template: backend_model
+- pattern: backend.exception_handling
+  description: Error taxonomy and mappings.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Error code
+  - name: http_status
+    type: integer
+    required: true
+    description: Status mapping
+  - name: message
+    type: string
+    required: true
+    description: User-facing string
+  - name: logging_level
+    type: enum[INFO, WARN, ERROR]
+    required: true
+    description: Log severity
+  - name: retries
+    type: integer
+    required: false
+    description: Allowed retries
+  outputs_template: backend_endpoint
+- pattern: backend.background_jobs
+  description: Async job definitions.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Job slug
+  - name: schedule
+    type: cron|duration
+    required: false
+    description: Trigger cadence
+  - name: payload_schema
+    type: object
+    required: false
+    description: Input payload
+  - name: handler
+    type: string
+    required: true
+    description: Implementation hook name
+  - name: retry_policy
+    type: object
+    required: false
+    description: Backoff and limits
+  - name: resources
+    type: object
+    required: false
+    description: Queue/topic/bucket
+  outputs_template: backend_model
+- pattern: backend.scheduled_tasks
+  description: Cron-style tasks with guarantees.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Task slug
+  - name: cron
+    type: string
+    required: true
+    description: Cron expression
+  - name: timezone
+    type: string
+    required: false
+    description: TZ
+  - name: action
+    type: string
+    required: true
+    description: Callable/endpoint
+  - name: sla
+    type: duration
+    required: false
+    description: Expected completion
+  outputs_template: backend_model
+- pattern: backend.webhook_endpoints
+  description: Inbound webhook handlers.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Webhook name
+  - name: provider
+    type: string
+    required: true
+    description: Source system
+  - name: path
+    type: string
+    required: true
+    description: Ingress path
+  - name: signature_scheme
+    type: string
+    required: true
+    description: Verification details
+  - name: payload_schema
+    type: object
+    required: true
+    description: Expected body
+  - name: responses
+    type: object
+    required: true
+    description: Status/payload mapping
+  outputs_template: backend_endpoint
+- pattern: backend.notification_triggers
+  description: Event -> notification fanout.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Trigger slug
+  - name: event
+    type: string
+    required: true
+    description: Source event
+  - name: channels
+    type: list[enum[email, sms, webhook, push]]
+    required: true
+    description: Destinations
+  - name: template_ref
+    type: string
+    required: true
+    description: Content template id
+  - name: audience
+    type: object
+    required: true
+    description: Targeting rules
+  - name: throttle
+    type: object
+    required: false
+    description: Per-user/channel caps
+  outputs_template: backend_model
+- pattern: backend.api_pagination
+  description: Pagination contract.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Pagination scheme slug
+  - name: style
+    type: enum[offset, cursor, page]
+    required: true
+    description: Strategy
+  - name: page_size
+    type: integer
+    required: true
+    description: Default size
+  - name: max_page_size
+    type: integer
+    required: false
+    description: Limit
+  - name: sort_fields
+    type: list[string]
+    required: false
+    description: Allowed sorts
+  outputs_template: backend_endpoint
+- pattern: backend.db_migrations
+  description: Declarative DDL changes.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Migration id
+  - name: operations
+    type: list[string]
+    required: true
+    description: Create/alter/drop statements
+  - name: dependencies
+    type: list[string]
+    required: false
+    description: Prior migrations
+  - name: rollback
+    type: list[string]
+    required: false
+    description: Down operations
+  outputs_template: backend_model
+- pattern: backend.caching_strategy
+  description: Cache policy and keys.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Cache slug
+  - name: scope
+    type: enum[request, model, computed]
+    required: true
+    description: What is cached
+  - name: key_template
+    type: string
+    required: true
+    description: Cache key format
+  - name: ttl
+    type: duration
+    required: true
+    description: Time to live
+  - name: invalidation_rules
+    type: list[string]
+    required: false
+    description: Bust conditions
+  outputs_template: backend_model
+- pattern: backend.event_publishing_kafka_sqs
+  description: Outbound event contract.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Topic/event name
+  - name: broker
+    type: enum[kafka, sqs, nats]
+    required: true
+    description: Transport
+  - name: key_schema
+    type: object
+    required: false
+    description: Partition key schema
+  - name: value_schema
+    type: object
+    required: true
+    description: Message schema
+  - name: ordering
+    type: boolean
+    required: false
+    description: Requires ordering
+  - name: retries
+    type: object
+    required: false
+    description: Delivery policy
+  outputs_template: backend_model
+- pattern: backend.event_subscribing
+  description: Consumer definition.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Consumer slug
+  - name: source_event
+    type: string
+    required: true
+    description: Event/topic name
+  - name: handler
+    type: string
+    required: true
+    description: Handler reference
+  - name: concurrency
+    type: integer
+    required: false
+    description: Parallelism
+  - name: dlq
+    type: object
+    required: false
+    description: Dead-letter policy
+  - name: offsets
+    type: enum[at_least_once, exactly_once, at_most_once]
+    required: true
+    description: Delivery guarantee
+  outputs_template: backend_model
+- pattern: backend.retry_policies
+  description: Backoff strategies.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Policy slug
+  - name: strategy
+    type: enum[fixed, exponential, jitter]
+    required: true
+    description: Backoff type
+  - name: initial_interval
+    type: duration
+    required: true
+    description: Start delay
+  - name: max_interval
+    type: duration
+    required: false
+    description: Cap
+  - name: max_attempts
+    type: integer
+    required: true
+    description: Attempts
+  outputs_template: backend_model
+- pattern: backend.idempotency_rules
+  description: Idempotent key strategies.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Rule slug
+  - name: scope
+    type: enum[endpoint, job, event]
+    required: true
+    description: Operation type
+  - name: key_source
+    type: string
+    required: true
+    description: Fields composing idempotency key
+  - name: ttl
+    type: duration
+    required: false
+    description: Dedup window
+  - name: conflict_behavior
+    type: enum[return_previous, error]
+    required: true
+    description: On-duplicate action
+  outputs_template: backend_endpoint
+- pattern: backend.security_policies
+  description: Security requirements per surface.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Policy id
+  - name: surface
+    type: enum[api, db, storage]
+    required: true
+    description: Target layer
+  - name: controls
+    type: list[string]
+    required: true
+    description: Requirements e.g., mTLS, encryption
+  - name: monitoring
+    type: list[string]
+    required: false
+    description: Signals/alerts
+  outputs_template: backend_model
+- pattern: backend.config_schemas
+  description: Typed configuration blocks.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Config block name
+  - name: fields
+    type: list[field]
+    required: true
+    description: Keys/types/defaults
+  - name: secrets
+    type: list[string]
+    required: false
+    description: Secret keys
+  - name: env_overrides
+    type: list[string]
+    required: false
+    description: Allowed env overrides
+  outputs_template: backend_model
+- pattern: backend.feature_flags
+  description: Flag definitions and rollout rules.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Flag key
+  - name: description
+    type: string
+    required: true
+    description: Purpose
+  - name: default_state
+    type: boolean
+    required: true
+    description: Default value
+  - name: rollout
+    type: object
+    required: false
+    description: Percentage/segments
+  - name: safeguards
+    type: list[string]
+    required: false
+    description: Kill switch conditions
+  outputs_template: backend_model
+- pattern: backend.a_b_experiment_wiring
+  description: Experiment metadata and variants.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Experiment id
+  - name: hypothesis
+    type: string
+    required: true
+    description: Expected lift
+  - name: variants
+    type: list[object]
+    required: true
+    description: Name + allocation
+  - name: metrics
+    type: list[string]
+    required: true
+    description: Success metrics
+  - name: population
+    type: object
+    required: true
+    description: Eligibility rules
+  - name: duration
+    type: duration
+    required: false
+    description: Run window
+  outputs_template: backend_model
+- pattern: frontend.form
+  description: Form definitions bound to schemas.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Form slug
+  - name: schema_ref
+    type: string
+    required: true
+    description: Underlying data schema
+  - name: layout
+    type: object
+    required: false
+    description: Sections/steps
+  - name: submit_action
+    type: string
+    required: true
+    description: Endpoint/action name
+  - name: validation_rules
+    type: list[string]
+    required: false
+    description: Client-side rules
+  outputs_template: frontend_ui
+- pattern: frontend.validation
+  description: UI validation definitions.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Rule group
+  - name: scope
+    type: enum[field, form]
+    required: true
+    description: Target
+  - name: rules
+    type: list[string]
+    required: true
+    description: Predicates/messages
+  outputs_template: frontend_ui
+- pattern: frontend.data_tables_sort_filter_paginate
+  description: Interactive table spec.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Table slug
+  - name: columns
+    type: list[field]
+    required: true
+    description: Columns + renderers
+  - name: data_source
+    type: string
+    required: true
+    description: Endpoint/query
+  - name: filters
+    type: list[field]
+    required: false
+    description: Filter controls
+  - name: sorting
+    type: list[string]
+    required: false
+    description: Sortable columns
+  - name: pagination
+    type: string
+    required: false
+    description: Pagination scheme id
+  outputs_template: frontend_ui
+- pattern: frontend.crud_ui
+  description: UI for CRUD models.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: UI slug
+  - name: model_ref
+    type: string
+    required: true
+    description: Backing model
+  - name: views
+    type: list[string]
+    required: true
+    description: list/create/update/show
+  - name: permissions
+    type: object
+    required: false
+    description: UI-level gating
+  outputs_template: frontend_ui
+- pattern: frontend.modals_dialogs
+  description: Modal definitions.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Modal slug
+  - name: trigger
+    type: string
+    required: true
+    description: Action that opens
+  - name: content
+    type: object
+    required: true
+    description: Body schema/layout
+  - name: actions
+    type: list[string]
+    required: true
+    description: Buttons and outcomes
+  outputs_template: frontend_ui
+- pattern: frontend.hero_sections_layouts
+  description: Marketing hero spec.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Section slug
+  - name: headline
+    type: string
+    required: true
+    description: Primary text
+  - name: subcopy
+    type: string
+    required: false
+    description: Supporting text
+  - name: media
+    type: object
+    required: false
+    description: Image/video reference
+  - name: ctas
+    type: list[string]
+    required: false
+    description: Calls to action
+  outputs_template: frontend_ui
+- pattern: frontend.sidebar_navigation
+  description: Navigation tree spec.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Nav slug
+  - name: items
+    type: list[object]
+    required: true
+    description: Links/labels/icons
+  - name: active_rule
+    type: string
+    required: false
+    description: Matching strategy
+  - name: roles
+    type: list[string]
+    required: false
+    description: Visibility rules
+  outputs_template: frontend_ui
+- pattern: frontend.theming
+  description: Design tokens and themes.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Theme name
+  - name: tokens
+    type: object
+    required: true
+    description: Colors/typography/spacing
+  - name: dark_mode
+    type: boolean
+    required: false
+    description: Supports dark
+  - name: overrides
+    type: object
+    required: false
+    description: Component-level tweaks
+  outputs_template: frontend_ui
+- pattern: frontend.global_state_slices
+  description: Client state declaration.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Slice name
+  - name: shape
+    type: object
+    required: true
+    description: State schema
+  - name: actions
+    type: list[string]
+    required: true
+    description: Reducer/effects
+  - name: persistence
+    type: string
+    required: false
+    description: Storage strategy
+  outputs_template: frontend_ui
+- pattern: frontend.api_clients
+  description: Typed client definitions.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Client name
+  - name: endpoints
+    type: list[string]
+    required: true
+    description: Endpoint refs
+  - name: retries
+    type: object
+    required: false
+    description: Retry policy
+  - name: auth
+    type: string
+    required: false
+    description: Token/header rules
+  outputs_template: frontend_ui
+- pattern: frontend.error_boundaries
+  description: Boundary definitions.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Boundary slug
+  - name: scope
+    type: enum[app, route, component]
+    required: true
+    description: Coverage
+  - name: fallback_ui
+    type: string
+    required: true
+    description: Component name
+  - name: report_channel
+    type: string
+    required: false
+    description: Logging/telemetry
+  outputs_template: frontend_ui
+- pattern: frontend.toast_notifications
+  description: Toast templates.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Toast key
+  - name: trigger
+    type: string
+    required: true
+    description: Event trigger
+  - name: variant
+    type: enum[info, success, warning, error]
+    required: true
+    description: Style
+  - name: message
+    type: string
+    required: true
+    description: Copy
+  - name: duration
+    type: duration
+    required: false
+    description: Auto-dismiss time
+  outputs_template: frontend_ui
+- pattern: frontend.responsive_rules
+  description: Breakpoint behaviors.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Rule set
+  - name: breakpoints
+    type: object
+    required: true
+    description: Sizes
+  - name: behaviors
+    type: list[string]
+    required: true
+    description: Layout changes
+  outputs_template: frontend_ui
+- pattern: frontend.component_libraries
+  description: Library-level manifest.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Library name
+  - name: components
+    type: list[string]
+    required: true
+    description: Component ids
+  - name: tokens_ref
+    type: string
+    required: false
+    description: Theme link
+  - name: distribution
+    type: enum[esm, cjs]
+    required: false
+    description: Build target
+  outputs_template: frontend_ui
+- pattern: frontend.live_previews
+  description: Preview surface definitions.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Preview slug
+  - name: data_source
+    type: string
+    required: true
+    description: Query or mock
+  - name: render_component
+    type: string
+    required: true
+    description: Component id
+  - name: refresh_interval
+    type: duration
+    required: false
+    description: Auto-refresh
+  outputs_template: frontend_ui
+- pattern: frontend.real_time_listeners
+  description: Subscription definitions.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Listener slug
+  - name: channel
+    type: string
+    required: true
+    description: Topic/socket channel
+  - name: auth
+    type: string
+    required: false
+    description: Token/subscription rules
+  - name: handler
+    type: string
+    required: true
+    description: Callback
+  outputs_template: frontend_ui
+- pattern: frontend.settings_pages
+  description: Settings surface spec.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Page slug
+  - name: sections
+    type: list[object]
+    required: true
+    description: Section definitions
+  - name: data_bindings
+    type: object
+    required: true
+    description: Reads/writes to endpoints
+  - name: permissions
+    type: object
+    required: false
+    description: Visibility/edit rules
+  outputs_template: frontend_ui
+- pattern: data_and_ml.etl_pipelines
+  description: Ingest/transform/load graph.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Pipeline id
+  - name: sources
+    type: list[object]
+    required: true
+    description: Input datasets
+  - name: transforms
+    type: list[object]
+    required: true
+    description: Steps/functions
+  - name: sinks
+    type: list[object]
+    required: true
+    description: Outputs
+  - name: schedule
+    type: cron|duration
+    required: false
+    description: Run cadence
+  outputs_template: data_ml
+- pattern: data_and_ml.feature_preprocessing
+  description: Feature engineering recipe.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Feature set
+  - name: inputs
+    type: list[string]
+    required: true
+    description: Source columns
+  - name: transforms
+    type: list[object]
+    required: true
+    description: Steps e.g., scaling
+  - name: outputs
+    type: list[string]
+    required: true
+    description: Derived feature names
+  outputs_template: data_ml
+- pattern: data_and_ml.validation_checks
+  description: Data quality rules.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Check slug
+  - name: target
+    type: enum[column, dataset]
+    required: true
+    description: Scope
+  - name: rule
+    type: string
+    required: true
+    description: Assertion
+  - name: threshold
+    type: number
+    required: false
+    description: Acceptable failure rate
+  - name: severity
+    type: enum[warn, fail]
+    required: true
+    description: Action
+  outputs_template: data_ml
+- pattern: data_and_ml.model_definitions
+  description: Trainable model manifest.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Model name
+  - name: task
+    type: enum[classification, regression, generation]
+    required: true
+    description: Task type
+  - name: architecture
+    type: string
+    required: true
+    description: Model family
+  - name: inputs
+    type: list[string]
+    required: true
+    description: Input feature names
+  - name: outputs
+    type: list[string]
+    required: true
+    description: Target labels
+  - name: hyperparams
+    type: object
+    required: false
+    description: Tunables
+  outputs_template: data_ml
+- pattern: data_and_ml.training_loops
+  description: Training job config.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Training run id
+  - name: model_ref
+    type: string
+    required: true
+    description: Model id
+  - name: dataset
+    type: string
+    required: true
+    description: Dataset id
+  - name: epochs
+    type: integer
+    required: true
+    description: Epoch count
+  - name: optimizer
+    type: object
+    required: true
+    description: Optimizer config
+  - name: callbacks
+    type: list[string]
+    required: false
+    description: Early stop/checkpoints
+  outputs_template: data_ml
+- pattern: data_and_ml.fine_tuning_config
+  description: Fine-tune specification.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: FT id
+  - name: base_model
+    type: string
+    required: true
+    description: Base model ref
+  - name: dataset
+    type: string
+    required: true
+    description: Dataset id
+  - name: lr_schedule
+    type: object
+    required: false
+    description: Learning rate plan
+  - name: eval_metrics
+    type: list[string]
+    required: false
+    description: Metrics
+  outputs_template: data_ml
+- pattern: data_and_ml.inference_endpoints
+  description: Serving config.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Endpoint id
+  - name: model_ref
+    type: string
+    required: true
+    description: Model id
+  - name: input_schema
+    type: object
+    required: true
+    description: Request schema
+  - name: output_schema
+    type: object
+    required: true
+    description: Response schema
+  - name: latency_sla
+    type: duration
+    required: false
+    description: Target latency
+  - name: autoscale
+    type: object
+    required: false
+    description: Scale policy
+  outputs_template: data_ml
+- pattern: data_and_ml.monitoring_metrics
+  description: Model/data monitors.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Monitor id
+  - name: signals
+    type: list[string]
+    required: true
+    description: Metrics/logs to collect
+  - name: thresholds
+    type: object
+    required: false
+    description: Alert thresholds
+  - name: cadence
+    type: duration
+    required: false
+    description: Eval interval
+  outputs_template: data_ml
+- pattern: data_and_ml.drift_rules
+  description: Drift detection config.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Drift rule id
+  - name: monitored_features
+    type: list[string]
+    required: true
+    description: Features to watch
+  - name: method
+    type: enum[ks, psi, kl]
+    required: true
+    description: Drift test
+  - name: threshold
+    type: number
+    required: true
+    description: Alert threshold
+  - name: action
+    type: string
+    required: false
+    description: Auto-mitigation
+  outputs_template: data_ml
+- pattern: data_and_ml.batch_jobs
+  description: Batch job spec.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Job id
+  - name: entrypoint
+    type: string
+    required: true
+    description: Script/task name
+  - name: schedule
+    type: cron|duration
+    required: false
+    description: Cadence
+  - name: resources
+    type: object
+    required: false
+    description: CPU/GPU/memory
+  - name: inputs
+    type: list[object]
+    required: false
+    description: Upstream datasets
+  - name: outputs
+    type: list[object]
+    required: false
+    description: Produced artifacts
+  outputs_template: data_ml
+- pattern: data_and_ml.data_schemas
+  description: Dataset schemas.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Dataset name
+  - name: fields
+    type: list[field]
+    required: true
+    description: Columns
+  - name: primary_key
+    type: list[string]
+    required: false
+    description: Keys
+  - name: partitioning
+    type: object
+    required: false
+    description: Partition columns
+  - name: retention
+    type: duration
+    required: false
+    description: Retention policy
+  outputs_template: data_ml
+- pattern: data_and_ml.storage_rules
+  description: Storage policies.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Storage rule id
+  - name: location
+    type: string
+    required: true
+    description: Bucket/path
+  - name: format
+    type: enum[parquet, csv, json]
+    required: true
+    description: File format
+  - name: encryption
+    type: string
+    required: false
+    description: Encryption rules
+  - name: access
+    type: object
+    required: true
+    description: IAM policy
+  outputs_template: data_ml
+- pattern: ml.training_job
+  description: Train/eval-ready job spec.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Job id
+  - name: model_ref
+    type: string
+    required: true
+    description: Model to train
+  - name: dataset
+    type: string
+    required: true
+    description: Training dataset ref
+  - name: objective
+    type: string
+    required: true
+    description: Primary metric or task
+  - name: hyperparams
+    type: object
+    required: false
+    description: Tunables for the run
+  - name: resources
+    type: object
+    required: false
+    description: CPU/GPU/memory needs
+  - name: checkpoints
+    type: object
+    required: false
+    description: Location/frequency for saves
+  - name: eval_metrics
+    type: list[string]
+    required: false
+    description: Metrics computed during training
+  outputs_template: data_ml
+- pattern: ml.eval_job
+  description: Standalone evaluation spec.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Eval job id
+  - name: model_ref
+    type: string
+    required: true
+    description: Model under test
+  - name: dataset
+    type: string
+    required: true
+    description: Eval dataset ref
+  - name: metrics
+    type: list[string]
+    required: true
+    description: Metrics to compute
+  - name: thresholds
+    type: object
+    required: false
+    description: Pass/fail cutoffs
+  - name: batch_size
+    type: integer
+    required: false
+    description: Inference batch size
+  - name: runner
+    type: string
+    required: false
+    description: Harness or entrypoint
+  outputs_template: data_ml
+- pattern: ml.quantization_job
+  description: Model compression spec.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Quantization job id
+  - name: source_model
+    type: string
+    required: true
+    description: Base model artifact/ref
+  - name: method
+    type: enum[static, dynamic, qat]
+    required: true
+    description: Quantization approach
+  - name: target_precision
+    type: enum[int8, fp16, bf16]
+    required: true
+    description: Output precision
+  - name: calibration_dataset
+    type: string
+    required: false
+    description: Calibration data ref
+  - name: target_hardware
+    type: string
+    required: false
+    description: Intended accelerator/CPU
+  - name: accuracy_tolerance
+    type: number
+    required: false
+    description: Allowed metric drop
+  outputs_template: data_ml
+- pattern: ml.inference_profile
+  description: Serving profile for a model.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Profile id
+  - name: model_ref
+    type: string
+    required: true
+    description: Model artifact/ref
+  - name: runtime
+    type: string
+    required: true
+    description: Serving stack or engine
+  - name: hardware
+    type: string
+    required: false
+    description: Host/gpu type
+  - name: latency_sla
+    type: duration
+    required: false
+    description: Target pXX latency
+  - name: max_batch_size
+    type: integer
+    required: false
+    description: Batch size cap
+  - name: concurrency
+    type: integer
+    required: false
+    description: Max concurrent requests
+  - name: scaling
+    type: object
+    required: false
+    description: Autoscale/replica policy
+  - name: endpoints
+    type: list[object]
+    required: false
+    description: Protocol/route details
+  outputs_template: data_ml
+- pattern: agent_ai.task_definitions
+  description: Agent task contracts.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Task slug
+  - name: goal
+    type: string
+    required: true
+    description: Objective
+  - name: inputs
+    type: object
+    required: true
+    description: Required context
+  - name: success_criteria
+    type: list[string]
+    required: true
+    description: What success means
+  - name: stop_conditions
+    type: list[string]
+    required: false
+    description: When to halt
+  outputs_template: backend_endpoint
+- pattern: agent_ai.tool_schemas
+  description: Agent tool manifests.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Tool name
+  - name: input_schema
+    type: object
+    required: true
+    description: Parameters
+  - name: output_schema
+    type: object
+    required: true
+    description: Result format
+  - name: safety
+    type: list[string]
+    required: false
+    description: Guards
+  - name: implementation
+    type: string
+    required: false
+    description: Backing function
+  outputs_template: backend_endpoint
+- pattern: agent_ai.memory_schemas
+  description: Memory store contracts.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Memory name
+  - name: modality
+    type: enum[text, vector, key_value]
+    required: true
+    description: Storage type
+  - name: ttl
+    type: duration
+    required: false
+    description: Retention
+  - name: schema
+    type: list[field]
+    required: true
+    description: Stored fields
+  - name: indexing
+    type: object
+    required: false
+    description: Vector/index params
+  outputs_template: backend_model
+- pattern: agent_ai.policy_rules
+  description: Behavioral guardrails.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Policy id
+  - name: scope
+    type: enum[tool, use_case, global]
+    required: true
+    description: Applicability
+  - name: rules
+    type: list[string]
+    required: true
+    description: Allowed/blocked actions
+  - name: enforcement
+    type: object
+    required: true
+    description: Runtime checks
+  outputs_template: backend_endpoint
+- pattern: agent_ai.safety_constraints
+  description: Safety bounding box.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Constraint id
+  - name: forbidden
+    type: list[string]
+    required: false
+    description: Prohibited topics/actions
+  - name: redaction
+    type: list[string]
+    required: false
+    description: PII/secret handling
+  - name: escalation
+    type: object
+    required: false
+    description: Escalation path
+  outputs_template: backend_endpoint
+- pattern: agent_ai.self_play_loops
+  description: Self-play loop config.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Loop id
+  - name: environment
+    type: object
+    required: true
+    description: Env description
+  - name: evaluator
+    type: object
+    required: true
+    description: Scoring mechanism
+  - name: reward_function
+    type: object
+    required: true
+    description: Reward calculation
+  - name: max_steps
+    type: integer
+    required: false
+    description: Termination limit
+  outputs_template: data_ml
+- pattern: agent_ai.reward_definitions
+  description: Reward function spec.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Reward id
+  - name: inputs
+    type: list[string]
+    required: true
+    description: Signals used
+  - name: formula
+    type: string
+    required: true
+    description: Reward formula
+  - name: bounds
+    type: object
+    required: false
+    description: Min/max
+  outputs_template: data_ml
+- pattern: agent_ai.prompt_templates
+  description: Prompt assets.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Prompt name
+  - name: content
+    type: string
+    required: true
+    description: Template text with slots
+  - name: variables
+    type: list[string]
+    required: true
+    description: Slot names
+  - name: guardrails
+    type: list[string]
+    required: false
+    description: Safety hints
+  - name: model_hints
+    type: object
+    required: false
+    description: Temperature/top_p/etc
+  outputs_template: backend_endpoint
+- pattern: agent_ai.evaluation_scripts
+  description: Eval suite definitions.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Eval id
+  - name: dataset
+    type: string
+    required: true
+    description: Dataset ref
+  - name: metrics
+    type: list[string]
+    required: true
+    description: Metrics to compute
+  - name: harness
+    type: enum[pytest, openai_evals, custom]
+    required: true
+    description: Runner
+  - name: thresholds
+    type: object
+    required: false
+    description: Minimum scores
+  outputs_template: data_ml
+- pattern: infra.docker_templates
+  description: Container build spec.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Image name
+  - name: base_image
+    type: string
+    required: true
+    description: Base
+  - name: entrypoint
+    type: string
+    required: true
+    description: Entrypoint command
+  - name: exposed_ports
+    type: list[integer]
+    required: false
+    description: Ports
+  - name: build_args
+    type: object
+    required: false
+    description: Args
+  outputs_template: infra
+- pattern: infra.deployment
+  description: Deploy target config.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Service name
+  - name: replicas
+    type: integer
+    required: true
+    description: Desired replicas
+  - name: image
+    type: string
+    required: true
+    description: Image ref
+  - name: env
+    type: object
+    required: false
+    description: Env vars
+  - name: ports
+    type: list[integer]
+    required: true
+    description: Exposed ports
+  - name: resources
+    type: object
+    required: false
+    description: CPU/memory limits
+  outputs_template: infra
+- pattern: infra.autoscaling
+  description: Autoscale policies.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Policy id
+  - name: target
+    type: enum[cpu, memory, rps, queue_depth]
+    required: true
+    description: Metric
+  - name: min_replicas
+    type: integer
+    required: true
+    description: Floor
+  - name: max_replicas
+    type: integer
+    required: true
+    description: Ceiling
+  - name: thresholds
+    type: object
+    required: true
+    description: Scale rules
+  outputs_template: infra
+- pattern: infra.load_balancers
+  description: LB config.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: LB name
+  - name: listeners
+    type: list[object]
+    required: true
+    description: Ports/protocols
+  - name: targets
+    type: list[string]
+    required: true
+    description: Target services
+  - name: health_checks
+    type: object
+    required: false
+    description: HC config
+  outputs_template: infra
+- pattern: infra.metrics_dashboards
+  description: Dashboard specs.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Dashboard name
+  - name: panels
+    type: list[object]
+    required: true
+    description: Visuals/queries
+  - name: data_sources
+    type: list[string]
+    required: true
+    description: Prom/Grafana sources
+  - name: alerts
+    type: list[object]
+    required: false
+    description: Alert rules
+  outputs_template: infra
+- pattern: infra.log_pipelines
+  description: Log route config.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Pipeline id
+  - name: sources
+    type: list[string]
+    required: true
+    description: Emitters
+  - name: processors
+    type: list[string]
+    required: false
+    description: Filters/enrichers
+  - name: sinks
+    type: list[string]
+    required: true
+    description: Destinations
+  - name: retention
+    type: duration
+    required: false
+    description: Retention
+  outputs_template: infra
+- pattern: infra.secrets_management
+  description: Secret storage rules.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Secret policy id
+  - name: secrets
+    type: list[string]
+    required: true
+    description: Secret keys
+  - name: storage
+    type: enum[aws_secrets, gcp_sm, vault, local]
+    required: true
+    description: Backend
+  - name: rotation
+    type: duration
+    required: false
+    description: Rotation frequency
+  - name: access_policy
+    type: object
+    required: true
+    description: IAM rules
+  outputs_template: infra
+- pattern: infra.permissions_iam
+  description: IAM roles/policies.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Role/policy id
+  - name: principals
+    type: list[string]
+    required: true
+    description: Users/roles/groups
+  - name: actions
+    type: list[string]
+    required: true
+    description: Allowed actions
+  - name: resources
+    type: list[string]
+    required: true
+    description: Resource ARNs
+  - name: conditions
+    type: list[string]
+    required: false
+    description: Conditional clauses
+  outputs_template: infra
+- pattern: infra.ssl_and_domains
+  description: Domain + TLS config.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Domain entry
+  - name: domain
+    type: string
+    required: true
+    description: DNS name
+  - name: certificate
+    type: string
+    required: true
+    description: Cert source
+  - name: renewal
+    type: duration
+    required: false
+    description: Renewal window
+  outputs_template: infra
+- pattern: infra.cicd_workflows
+  description: CI/CD pipeline spec.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Workflow id
+  - name: triggers
+    type: list[string]
+    required: true
+    description: Push/pr/tag/schedule
+  - name: jobs
+    type: list[object]
+    required: true
+    description: Steps/stages
+  - name: secrets
+    type: list[string]
+    required: false
+    description: Secret refs
+  - name: artifacts
+    type: list[string]
+    required: false
+    description: Build artifacts
+  outputs_template: infra
+- pattern: go.http_crud_router
+  description: Go HTTP router exposing CRUD handlers.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Router slug
+  - name: resource
+    type: string
+    required: true
+    description: Resource/model key
+  - name: base_path
+    type: string
+    required: true
+    description: Base URI prefix
+  - name: methods
+    type: list[string]
+    required: true
+    description: CRUD operations exposed
+  - name: model_schema
+    type: object
+    required: true
+    description: Request/response schema refs
+  - name: middleware
+    type: list[string]
+    required: false
+    description: Per-route middleware chain
+  - name: auth
+    type: object
+    required: false
+    description: Role/scope rules for the router
+  outputs_template: backend_endpoint
+- pattern: rust.axum_crud_router
+  description: Axum router wiring CRUD routes with shared state.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Router slug
+  - name: resource
+    type: string
+    required: true
+    description: Resource/model key
+  - name: base_path
+    type: string
+    required: true
+    description: Base URI prefix
+  - name: handler_refs
+    type: list[string]
+    required: true
+    description: Axum handler function names
+  - name: state
+    type: object
+    required: false
+    description: Shared state/extractor config
+  - name: model_schema
+    type: object
+    required: true
+    description: Request/response schema refs
+  - name: error_mapper
+    type: string
+    required: false
+    description: Error to response mapping strategy
+  outputs_template: backend_endpoint
+- pattern: java.spring_crud_controller
+  description: Spring Web MVC controller exposing CRUD endpoints.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Controller name
+  - name: entity_ref
+    type: string
+    required: true
+    description: Entity/model reference
+  - name: base_path
+    type: string
+    required: true
+    description: Request mapping base path
+  - name: dto_schema
+    type: object
+    required: true
+    description: Request/response DTO schema refs
+  - name: service_ref
+    type: string
+    required: true
+    description: Backing service/repository bean
+  - name: validation_groups
+    type: list[string]
+    required: false
+    description: Bean validation groups
+  - name: auth
+    type: object
+    required: false
+    description: Method security and roles
+  outputs_template: backend_endpoint
+- pattern: node.express_jwt_auth
+  description: Express middleware for JWT validation and role gating.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Middleware name
+  - name: issuer
+    type: string
+    required: true
+    description: Expected token issuer
+  - name: audience
+    type: string
+    required: true
+    description: Expected audience/claims
+  - name: jwks_uri
+    type: string
+    required: true
+    description: JWKS endpoint for key rotation
+  - name: algorithms
+    type: list[string]
+    required: false
+    description: Allowed signing algorithms
+  - name: header
+    type: string
+    required: false
+    description: Authorization header location/name
+  - name: claims_mapping
+    type: object
+    required: false
+    description: Claim to request context mapping
+  outputs_template: backend_endpoint
+- pattern: go.http_jwt_middleware
+  description: Go HTTP middleware enforcing JWT auth.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Middleware name
+  - name: issuer
+    type: string
+    required: true
+    description: Expected token issuer
+  - name: audience
+    type: string
+    required: true
+    description: Expected audience/claims
+  - name: jwks_uri
+    type: string
+    required: true
+    description: JWKS endpoint for key rotation
+  - name: algorithms
+    type: list[string]
+    required: false
+    description: Allowed signing algorithms
+  - name: token_locations
+    type: list[string]
+    required: false
+    description: Headers/cookies where tokens are read
+  - name: context_key
+    type: string
+    required: false
+    description: Request context key for claims
+  outputs_template: backend_endpoint
+- pattern: node.queue_worker.bullmq
+  description: BullMQ worker consuming a named queue.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Worker name
+  - name: queue
+    type: string
+    required: true
+    description: Queue name
+  - name: processor
+    type: string
+    required: true
+    description: Processor module/function
+  - name: concurrency
+    type: integer
+    required: false
+    description: Max concurrent jobs
+  - name: retry_policy
+    type: object
+    required: false
+    description: Attempts/backoff settings
+  - name: rate_limit
+    type: object
+    required: false
+    description: Throttle configuration
+  - name: connection
+    type: object
+    required: false
+    description: Redis connection config
+  outputs_template: backend_model
+- pattern: python.background_worker.celery
+  description: Celery task/worker configuration.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Task name
+  - name: queue
+    type: string
+    required: true
+    description: Queue/routing key
+  - name: task
+    type: string
+    required: true
+    description: Callable path
+  - name: schedule
+    type: cron|duration
+    required: false
+    description: Optional beat schedule
+  - name: retry_policy
+    type: object
+    required: false
+    description: Retries/backoff
+  - name: acks_late
+    type: boolean
+    required: false
+    description: Require explicit ack after completion
+  - name: rate_limit
+    type: string
+    required: false
+    description: Per-worker rate limit
+  outputs_template: backend_model
+- pattern: node.kafka_consumer
+  description: Node consumer for Kafka topics.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Consumer name
+  - name: topic
+    type: string
+    required: true
+    description: Topic name
+  - name: group_id
+    type: string
+    required: true
+    description: Consumer group id
+  - name: handler
+    type: string
+    required: true
+    description: Message handler function
+  - name: concurrency
+    type: integer
+    required: false
+    description: Parallel partitions processed
+  - name: auto_commit
+    type: boolean
+    required: false
+    description: Commit offsets automatically
+  - name: offset_reset
+    type: enum[earliest, latest]
+    required: false
+    description: Start position if no committed offset
+  - name: dlq_topic
+    type: string
+    required: false
+    description: Dead-letter topic
+  outputs_template: backend_model
+- pattern: go.nats_subscriber
+  description: NATS subscription handler with optional queue group.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Subscriber name
+  - name: subject
+    type: string
+    required: true
+    description: Subject to subscribe to
+  - name: queue_group
+    type: string
+    required: false
+    description: Queue group for load balancing
+  - name: handler
+    type: string
+    required: true
+    description: Message handler function
+  - name: ack_policy
+    type: enum[at_least_once, at_most_once]
+    required: false
+    description: Delivery/acknowledgement strategy
+  - name: retry_policy
+    type: object
+    required: false
+    description: Retry/backoff config
+  outputs_template: backend_model
+- pattern: data_ml.fastapi_inference_api
+  description: FastAPI endpoint exposing model inference.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Endpoint id
+  - name: model_ref
+    type: string
+    required: true
+    description: Model to load/invoke
+  - name: path
+    type: string
+    required: true
+    description: Route path
+  - name: input_schema
+    type: object
+    required: true
+    description: Request schema
+  - name: output_schema
+    type: object
+    required: true
+    description: Response schema
+  - name: batching
+    type: object
+    required: false
+    description: Batch/stream settings
+  - name: auth
+    type: object
+    required: false
+    description: Auth/rate limit config
+  outputs_template: data_ml
+- pattern: frontend.react_crud_table
+  description: React data table bound to a CRUD model.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Table slug
+  - name: model_ref
+    type: string
+    required: true
+    description: Backing model id
+  - name: columns
+    type: list[field]
+    required: true
+    description: Columns and renderers
+  - name: data_source
+    type: string
+    required: true
+    description: Endpoint/query supplying rows
+  - name: filters
+    type: list[field]
+    required: false
+    description: Filter controls
+  - name: pagination
+    type: object
+    required: false
+    description: Pagination + sorting config
+  - name: row_actions
+    type: list[string]
+    required: false
+    description: Row-level actions
+  - name: optimistic_updates
+    type: boolean
+    required: false
+    description: Enable optimistic UI updates
+  outputs_template: frontend_ui
+- pattern: frontend.react_form_validation
+  description: Validation contract for a React form.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Validation config id
+  - name: form_ref
+    type: string
+    required: true
+    description: Form/component id
+  - name: mode
+    type: enum[onBlur, onSubmit, onChange]
+    required: false
+    description: Validation trigger mode
+  - name: rules
+    type: list[string]
+    required: true
+    description: Validation predicates/messages
+  - name: resolver
+    type: string
+    required: false
+    description: Validation library/resolver (zod/yup)
+  - name: error_handling
+    type: object
+    required: false
+    description: Error presentation hooks
+  outputs_template: frontend_ui
+- pattern: infra.k8s_deployment_service
+  description: Kubernetes Deployment + Service pair.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Workload name
+  - name: image
+    type: string
+    required: true
+    description: Container image
+  - name: replicas
+    type: integer
+    required: true
+    description: Desired replicas
+  - name: ports
+    type: list[integer]
+    required: true
+    description: Container/service ports
+  - name: env
+    type: object
+    required: false
+    description: Environment variables/secrets
+  - name: resources
+    type: object
+    required: false
+    description: Resource requests/limits
+  - name: service_type
+    type: enum[ClusterIP, LoadBalancer, NodePort]
+    required: false
+    description: Service exposure type
+  - name: ingress
+    type: object
+    required: false
+    description: Ingress/hostname config
+  outputs_template: infra
+- pattern: infra.docker_compose_service
+  description: docker-compose service definition.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Service name
+  - name: image
+    type: string
+    required: true
+    description: Image or build target
+  - name: build_context
+    type: string
+    required: false
+    description: Build context/path
+  - name: command
+    type: string
+    required: false
+    description: Override command/entrypoint
+  - name: ports
+    type: list[string]
+    required: false
+    description: Port mappings
+  - name: environment
+    type: object
+    required: false
+    description: Env vars/secrets
+  - name: volumes
+    type: list[string]
+    required: false
+    description: Volume mounts
+  - name: depends_on
+    type: list[string]
+    required: false
+    description: Dependency services
+  - name: healthcheck
+    type: object
+    required: false
+    description: Healthcheck command/intervals
+  outputs_template: infra
+- pattern: agent_ai.llm_chat_fastapi
+  description: FastAPI chat endpoint powered by an LLM.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Endpoint id
+  - name: route
+    type: string
+    required: true
+    description: Path for chat endpoint
+  - name: model
+    type: string
+    required: true
+    description: Model/provider identifier
+  - name: system_prompt
+    type: string
+    required: false
+    description: System prompt template
+  - name: tools
+    type: list[string]
+    required: false
+    description: Tools/functions exposed
+  - name: memory
+    type: object
+    required: false
+    description: Conversation memory config
+  - name: auth
+    type: object
+    required: false
+    description: Auth/rate limits
+  - name: streaming
+    type: boolean
+    required: false
+    description: Enable server-sent streaming
+  outputs_template: backend_endpoint
+- pattern: agent_ai.llm_chat_express
+  description: Express route wrapping an LLM-powered chat handler.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Endpoint id
+  - name: route
+    type: string
+    required: true
+    description: Path for chat endpoint
+  - name: model
+    type: string
+    required: true
+    description: Model/provider identifier
+  - name: system_prompt
+    type: string
+    required: false
+    description: System prompt template
+  - name: middleware
+    type: list[string]
+    required: false
+    description: Middleware chain
+  - name: tools
+    type: list[string]
+    required: false
+    description: Tools/functions exposed
+  - name: auth
+    type: object
+    required: false
+    description: Auth/rate limits
+  - name: streaming
+    type: boolean
+    required: false
+    description: Enable chunked responses
+  outputs_template: backend_endpoint
+- pattern: cli.python_click_command
+  description: Python Click command contract.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Command name
+  - name: summary
+    type: string
+    required: true
+    description: Help/summary string
+  - name: arguments
+    type: list[object]
+    required: false
+    description: Positional arguments
+  - name: options
+    type: list[object]
+    required: true
+    description: Flag/options definitions
+  - name: handler
+    type: string
+    required: true
+    description: Function implementing the command
+  - name: examples
+    type: list[string]
+    required: false
+    description: Example invocations
+  outputs_template: backend_endpoint
+- pattern: cli.node_yargs_command
+  description: Node/Yargs command contract.
+  fields:
+  - name: id
+    type: string
+    required: true
+    description: Command name
+  - name: summary
+    type: string
+    required: true
+    description: Help/summary string
+  - name: command
+    type: string
+    required: true
+    description: Command string/aliases
+  - name: builder
+    type: object
+    required: false
+    description: Option builder schema
+  - name: handler
+    type: string
+    required: true
+    description: Handler function
+  - name: examples
+    type: list[string]
+    required: false
+    description: Example invocations
+  outputs_template: backend_endpoint
+templates:
+  backend_http:
+    fastapi: Route with Pydantic models, auth stub, error handling.
+    react: Typed client hook to call the endpoint.
+    tests: Contract tests hitting the route (happy path + auth/validation).
+    docker: None (covered in infra_deploy).
+    k8s: None (covered in infra_deploy).
+  backend_model:
+    python: ORM/dataclass model + repository contract.
+    fastapi: CRUD routes or dependency providers.
+    react: Generated hooks/forms tied to the model shape.
+    tests: Model validation + repository contract tests.
+    docs: ERD note + field reference.
+    migrations: DDL migration for tables/collections.
+    infra: Storage/secret config YAML.
+    tools: Agent read/write tool definitions.
+  frontend_form:
+    fastapi: None.
+    react: Form component + Storybook story; uses schema_ref and submit_action.
+    tests: React Testing Library happy-path + validation assertions.
+    docker: None.
+    k8s: None.
+  infra_deploy:
+    fastapi: None.
+    react: None.
+    tests: Manifest lint/smoke test.
+    docker: Dockerfile and docker-compose snippet.
+    k8s: Deployment + Service YAML (optional Ingress).
+  backend_endpoint:
+    python: Pydantic/attrs model representing the spec plus a handler skeleton.
+    fastapi: Route registration, request/response models, error handling stubs.
+    react: Typed client hook and fetcher; optional UI to trigger the endpoint.
+    tests: Contract test validating status codes, schema, and auth paths.
+    docs: OpenAPI fragment and human docstring.
+    migrations: Route registry entry or permissions seed.
+    infra: Ingress / gateway / service map YAML.
+    tools: Agent tool schema mirroring the request/response contract.
+  frontend_ui:
+    python: JSON schema exporters; validation helpers.
+    fastapi: UI-facing API contracts.
+    react: Components, hooks, and Storybook stories.
+    tests: RTL/Cypress happy-path + validation tests.
+    docs: Usage notes + prop tables.
+    migrations: Design tokens/state shape seeders.
+    infra: Asset pipeline + CDN/cache hints.
+    tools: Agent UI-driving tool definitions.
+  data_ml:
+    python: Pipeline/component classes and configs.
+    fastapi: Inference/monitoring endpoints.
+    react: Control panel UI and visualization hooks.
+    tests: Data validation, golden outputs, and drift tests.
+    docs: Runbook + lineage notes.
+    migrations: Dataset/feature store registrations.
+    infra: Batch/stream job YAML + storage buckets.
+    tools: Agent tools for triggering runs and inspecting metrics.
+  infra:
+    python: IaC config emitters and validation.
+    fastapi: Health/config surfaces.
+    react: Ops dashboards.
+    tests: Policy checks and smoke plans.
+    docs: Playbooks and topology.
+    migrations: Infra change sets.
+    infra: Rendered Terraform/Kubernetes/docker YAML.
+    tools: Agent ops tools.

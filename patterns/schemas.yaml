@@ -1,0 +1,812 @@
+version: 0.1
+notes: |
+  Declarative schemas for every pattern so ai-build can generate code, infra, and docs.
+  Each schema is intentionally small: `id`, `summary`, and a handful of fields that
+  give generators enough structure to create Python/TS classes, FastAPI endpoints,
+  React components, tests, docs, migrations, infra YAML, and agent tools.
+output_templates:
+  backend_endpoint:
+    python: Pydantic/attrs model representing the spec plus a handler skeleton.
+    fastapi: Route registration, request/response models, error handling stubs.
+    react: Typed client hook and fetcher; optional UI to trigger the endpoint.
+    tests: Contract test validating status codes, schema, and auth paths.
+    docs: OpenAPI fragment and human docstring.
+    migrations: Route registry entry or permissions seed.
+    infra: Ingress / gateway / service map YAML.
+    tools: Agent tool schema mirroring the request/response contract.
+  backend_model:
+    python: ORM/dataclass model + repository contract.
+    fastapi: CRUD routes or dependency providers.
+    react: Generated hooks/forms tied to the model shape.
+    tests: Model validation + repository contract tests.
+    docs: ERD note + field reference.
+    migrations: DDL migration for tables/collections.
+    infra: Storage/secret config YAML.
+    tools: Agent read/write tool definitions.
+  frontend_ui:
+    python: JSON schema exporters; validation helpers.
+    fastapi: UI-facing API contracts.
+    react: Components, hooks, and Storybook stories.
+    tests: RTL/Cypress happy-path + validation tests.
+    docs: Usage notes + prop tables.
+    migrations: Design tokens/state shape seeders.
+    infra: Asset pipeline + CDN/cache hints.
+    tools: Agent UI-driving tool definitions.
+  data_ml:
+    python: Pipeline/component classes and configs.
+    fastapi: Inference/monitoring endpoints.
+    react: Control panel UI and visualization hooks.
+    tests: Data validation, golden outputs, and drift tests.
+    docs: Runbook + lineage notes.
+    migrations: Dataset/feature store registrations.
+    infra: Batch/stream job YAML + storage buckets.
+    tools: Agent tools for triggering runs and inspecting metrics.
+  infra:
+    python: IaC config emitters and validation.
+    fastapi: Health/config surfaces.
+    react: Ops dashboards.
+    tests: Policy checks and smoke plans.
+    docs: Playbooks and topology.
+    migrations: Infra change sets.
+    infra: Rendered Terraform/Kubernetes/docker YAML.
+    tools: Agent ops tools.
+schemas:
+  # ----------------------------- Backend -----------------------------
+  - category: Backend
+    pattern: HTTP endpoints
+    description: Declarative REST/RPC endpoint contract.
+    fields:
+      - {name: id, type: string, required: true, description: Unique slug}
+      - {name: method, type: enum[GET,POST,PUT,PATCH,DELETE], required: true, description: HTTP verb}
+      - {name: path, type: string, required: true, description: URI template with params}
+      - {name: inputs, type: object, required: true, description: Request body/query/schema refs}
+      - {name: outputs, type: object, required: true, description: Success payload + status codes}
+      - {name: body_style, type: enum[flat,wrapped], required: false, description: Request body shape (default flat)}
+      - {name: body_wrapper_key, type: string, required: false, description: Wrapper key when body_style=wrapped}
+      - {name: constraints, type: list[string], required: false, description: Idempotency, rate limit, pagination}
+      - {name: auth, type: object, required: false, description: Roles/scopes and enforcement points}
+    outputs_template: backend_endpoint
+  - category: Backend
+    pattern: CRUD models
+    description: Data model with CRUD policies.
+    fields:
+      - {name: id, type: string, required: true, description: Model slug}
+      - {name: fields, type: list[field], required: true, description: Name/type/validation/default}
+      - {name: relations, type: list[relation], required: false, description: Foreign keys/refs}
+      - {name: crud_rules, type: object, required: true, description: Allowed ops + hooks}
+      - {name: indexes, type: list[index], required: false, description: Index definitions}
+      - {name: soft_delete, type: boolean, required: false, description: Enable tombstones}
+    outputs_template: backend_model
+  - category: Backend
+    pattern: Validation rules
+    description: Cross-field and invariants for inputs/models.
+    fields:
+      - {name: id, type: string, required: true, description: Rule slug}
+      - {name: scope, type: enum[field,model,request], required: true, description: Where rule applies}
+      - {name: expression, type: string, required: true, description: DSL or predicate}
+      - {name: severity, type: enum[error,warning], required: true, description: Enforcement level}
+      - {name: message, type: string, required: true, description: User/dev facing message}
+      - {name: remediation, type: string, required: false, description: Suggested fix}
+    outputs_template: backend_model
+  - category: Backend
+    pattern: Auth + permissions
+    description: Role/scope-based access matrix.
+    fields:
+      - {name: id, type: string, required: true, description: Policy slug}
+      - {name: actors, type: list[string], required: true, description: Roles/users/groups}
+      - {name: resources, type: list[string], required: true, description: Protected resources}
+      - {name: actions, type: list[string], required: true, description: CRUD/action verbs}
+      - {name: conditions, type: list[string], required: false, description: Attribute-based checks}
+      - {name: enforcement, type: object, required: true, description: Where/how enforced}
+    outputs_template: backend_endpoint
+  - category: Backend
+    pattern: Rate limits + quotas
+    description: Throttling and quota rules.
+    fields:
+      - {name: id, type: string, required: true, description: Limit slug}
+      - {name: target, type: enum[ip,user,api_key,org], required: true, description: Subject of limit}
+      - {name: window, type: duration, required: true, description: Time window}
+      - {name: max_requests, type: integer, required: true, description: Allowed hits per window}
+      - {name: burst, type: integer, required: false, description: Burst allowance}
+      - {name: scope, type: list[string], required: true, description: Paths/endpoints covered}
+    outputs_template: backend_endpoint
+  - category: Backend
+    pattern: Request/response schemas
+    description: Reusable payload definitions.
+    fields:
+      - {name: id, type: string, required: true, description: Schema name}
+      - {name: version, type: string, required: false, description: Schema version}
+      - {name: properties, type: list[field], required: true, description: Fields with types/constraints}
+      - {name: examples, type: list[object], required: false, description: Example payloads}
+      - {name: invariants, type: list[string], required: false, description: Cross-field rules}
+    outputs_template: backend_endpoint
+  - category: Backend
+    pattern: Logging patterns
+    description: Structured log contracts.
+    fields:
+      - {name: id, type: string, required: true, description: Event name}
+      - {name: level, type: enum[DEBUG,INFO,WARN,ERROR], required: true, description: Severity}
+      - {name: schema, type: list[field], required: true, description: Structured fields}
+      - {name: redaction, type: list[string], required: false, description: Sensitive field policy}
+      - {name: sinks, type: list[string], required: false, description: Destinations/indices}
+    outputs_template: backend_model
+  - category: Backend
+    pattern: Exception handling
+    description: Error taxonomy and mappings.
+    fields:
+      - {name: id, type: string, required: true, description: Error code}
+      - {name: http_status, type: integer, required: true, description: Status mapping}
+      - {name: message, type: string, required: true, description: User-facing string}
+      - {name: logging_level, type: enum[INFO,WARN,ERROR], required: true, description: Log severity}
+      - {name: retries, type: integer, required: false, description: Allowed retries}
+    outputs_template: backend_endpoint
+  - category: Backend
+    pattern: Background jobs
+    description: Async job definitions.
+    fields:
+      - {name: id, type: string, required: true, description: Job slug}
+      - {name: schedule, type: cron|duration, required: false, description: Trigger cadence}
+      - {name: payload_schema, type: object, required: false, description: Input payload}
+      - {name: handler, type: string, required: true, description: Implementation hook name}
+      - {name: retry_policy, type: object, required: false, description: Backoff and limits}
+      - {name: resources, type: object, required: false, description: Queue/topic/bucket}
+    outputs_template: backend_model
+  - category: Backend
+    pattern: Scheduled tasks
+    description: Cron-style tasks with guarantees.
+    fields:
+      - {name: id, type: string, required: true, description: Task slug}
+      - {name: cron, type: string, required: true, description: Cron expression}
+      - {name: timezone, type: string, required: false, description: TZ}
+      - {name: action, type: string, required: true, description: Callable/endpoint}
+      - {name: sla, type: duration, required: false, description: Expected completion}
+    outputs_template: backend_model
+  - category: Backend
+    pattern: Webhook endpoints
+    description: Inbound webhook handlers.
+    fields:
+      - {name: id, type: string, required: true, description: Webhook name}
+      - {name: provider, type: string, required: true, description: Source system}
+      - {name: path, type: string, required: true, description: Ingress path}
+      - {name: signature_scheme, type: string, required: true, description: Verification details}
+      - {name: payload_schema, type: object, required: true, description: Expected body}
+      - {name: responses, type: object, required: true, description: Status/payload mapping}
+    outputs_template: backend_endpoint
+  - category: Backend
+    pattern: Notification triggers
+    description: Event -> notification fanout.
+    fields:
+      - {name: id, type: string, required: true, description: Trigger slug}
+      - {name: event, type: string, required: true, description: Source event}
+      - {name: channels, type: list[enum[email,sms,webhook,push]], required: true, description: Destinations}
+      - {name: template_ref, type: string, required: true, description: Content template id}
+      - {name: audience, type: object, required: true, description: Targeting rules}
+      - {name: throttle, type: object, required: false, description: Per-user/channel caps}
+    outputs_template: backend_model
+  - category: Backend
+    pattern: API pagination
+    description: Pagination contract.
+    fields:
+      - {name: id, type: string, required: true, description: Pagination scheme slug}
+      - {name: style, type: enum[offset, cursor, page], required: true, description: Strategy}
+      - {name: page_size, type: integer, required: true, description: Default size}
+      - {name: max_page_size, type: integer, required: false, description: Limit}
+      - {name: sort_fields, type: list[string], required: false, description: Allowed sorts}
+    outputs_template: backend_endpoint
+  - category: Backend
+    pattern: DB migrations
+    description: Declarative DDL changes.
+    fields:
+      - {name: id, type: string, required: true, description: Migration id}
+      - {name: operations, type: list[string], required: true, description: Create/alter/drop statements}
+      - {name: dependencies, type: list[string], required: false, description: Prior migrations}
+      - {name: rollback, type: list[string], required: false, description: Down operations}
+    outputs_template: backend_model
+  - category: Backend
+    pattern: Caching strategy
+    description: Cache policy and keys.
+    fields:
+      - {name: id, type: string, required: true, description: Cache slug}
+      - {name: scope, type: enum[request,model,computed], required: true, description: What is cached}
+      - {name: key_template, type: string, required: true, description: Cache key format}
+      - {name: ttl, type: duration, required: true, description: Time to live}
+      - {name: invalidation_rules, type: list[string], required: false, description: Bust conditions}
+    outputs_template: backend_model
+  - category: Backend
+    pattern: Event publishing (Kafka/SQS)
+    description: Outbound event contract.
+    fields:
+      - {name: id, type: string, required: true, description: Topic/event name}
+      - {name: broker, type: enum[kafka,sqs,nats], required: true, description: Transport}
+      - {name: key_schema, type: object, required: false, description: Partition key schema}
+      - {name: value_schema, type: object, required: true, description: Message schema}
+      - {name: ordering, type: boolean, required: false, description: Requires ordering}
+      - {name: retries, type: object, required: false, description: Delivery policy}
+    outputs_template: backend_model
+  - category: Backend
+    pattern: Event subscribing
+    description: Consumer definition.
+    fields:
+      - {name: id, type: string, required: true, description: Consumer slug}
+      - {name: source_event, type: string, required: true, description: Event/topic name}
+      - {name: handler, type: string, required: true, description: Handler reference}
+      - {name: concurrency, type: integer, required: false, description: Parallelism}
+      - {name: dlq, type: object, required: false, description: Dead-letter policy}
+      - {name: offsets, type: enum[at_least_once, exactly_once, at_most_once], required: true, description: Delivery guarantee}
+    outputs_template: backend_model
+  - category: Backend
+    pattern: Retry policies
+    description: Backoff strategies.
+    fields:
+      - {name: id, type: string, required: true, description: Policy slug}
+      - {name: strategy, type: enum[fixed,exponential,jitter], required: true, description: Backoff type}
+      - {name: initial_interval, type: duration, required: true, description: Start delay}
+      - {name: max_interval, type: duration, required: false, description: Cap}
+      - {name: max_attempts, type: integer, required: true, description: Attempts}
+    outputs_template: backend_model
+  - category: Backend
+    pattern: Idempotency rules
+    description: Idempotent key strategies.
+    fields:
+      - {name: id, type: string, required: true, description: Rule slug}
+      - {name: scope, type: enum[endpoint,job,event], required: true, description: Operation type}
+      - {name: key_source, type: string, required: true, description: Fields composing idempotency key}
+      - {name: ttl, type: duration, required: false, description: Dedup window}
+      - {name: conflict_behavior, type: enum[return_previous, error], required: true, description: On-duplicate action}
+    outputs_template: backend_endpoint
+  - category: Backend
+    pattern: Security policies
+    description: Security requirements per surface.
+    fields:
+      - {name: id, type: string, required: true, description: Policy id}
+      - {name: surface, type: enum[api,db,storage], required: true, description: Target layer}
+      - {name: controls, type: list[string], required: true, description: Requirements e.g., mTLS, encryption}
+      - {name: monitoring, type: list[string], required: false, description: Signals/alerts}
+    outputs_template: backend_model
+  - category: Backend
+    pattern: Config schemas
+    description: Typed configuration blocks.
+    fields:
+      - {name: id, type: string, required: true, description: Config block name}
+      - {name: fields, type: list[field], required: true, description: Keys/types/defaults}
+      - {name: secrets, type: list[string], required: false, description: Secret keys}
+      - {name: env_overrides, type: list[string], required: false, description: Allowed env overrides}
+    outputs_template: backend_model
+  - category: Backend
+    pattern: Feature flags
+    description: Flag definitions and rollout rules.
+    fields:
+      - {name: id, type: string, required: true, description: Flag key}
+      - {name: description, type: string, required: true, description: Purpose}
+      - {name: default_state, type: boolean, required: true, description: Default value}
+      - {name: rollout, type: object, required: false, description: Percentage/segments}
+      - {name: safeguards, type: list[string], required: false, description: Kill switch conditions}
+    outputs_template: backend_model
+  - category: Backend
+    pattern: A/B experiment wiring
+    description: Experiment metadata and variants.
+    fields:
+      - {name: id, type: string, required: true, description: Experiment id}
+      - {name: hypothesis, type: string, required: true, description: Expected lift}
+      - {name: variants, type: list[object], required: true, description: Name + allocation}
+      - {name: metrics, type: list[string], required: true, description: Success metrics}
+      - {name: population, type: object, required: true, description: Eligibility rules}
+      - {name: duration, type: duration, required: false, description: Run window}
+    outputs_template: backend_model
+  # ----------------------------- Frontend -----------------------------
+  - category: Frontend
+    pattern: Data forms
+    description: Form definitions bound to schemas.
+    fields:
+      - {name: id, type: string, required: true, description: Form slug}
+      - {name: schema_ref, type: string, required: true, description: Underlying data schema}
+      - {name: layout, type: object, required: false, description: Sections/steps}
+      - {name: submit_action, type: string, required: true, description: Endpoint/action name}
+      - {name: validation_rules, type: list[string], required: false, description: Client-side rules}
+    outputs_template: frontend_ui
+  - category: Frontend
+    pattern: Validation
+    description: UI validation definitions.
+    fields:
+      - {name: id, type: string, required: true, description: Rule group}
+      - {name: scope, type: enum[field, form], required: true, description: Target}
+      - {name: rules, type: list[string], required: true, description: Predicates/messages}
+    outputs_template: frontend_ui
+  - category: Frontend
+    pattern: Data tables (sort, filter, paginate)
+    description: Interactive table spec.
+    fields:
+      - {name: id, type: string, required: true, description: Table slug}
+      - {name: columns, type: list[field], required: true, description: Columns + renderers}
+      - {name: data_source, type: string, required: true, description: Endpoint/query}
+      - {name: filters, type: list[field], required: false, description: Filter controls}
+      - {name: sorting, type: list[string], required: false, description: Sortable columns}
+      - {name: pagination, type: string, required: false, description: Pagination scheme id}
+    outputs_template: frontend_ui
+  - category: Frontend
+    pattern: CRUD UI
+    description: UI for CRUD models.
+    fields:
+      - {name: id, type: string, required: true, description: UI slug}
+      - {name: model_ref, type: string, required: true, description: Backing model}
+      - {name: views, type: list[string], required: true, description: list/create/update/show}
+      - {name: permissions, type: object, required: false, description: UI-level gating}
+    outputs_template: frontend_ui
+  - category: Frontend
+    pattern: Modals/dialogs
+    description: Modal definitions.
+    fields:
+      - {name: id, type: string, required: true, description: Modal slug}
+      - {name: trigger, type: string, required: true, description: Action that opens}
+      - {name: content, type: object, required: true, description: Body schema/layout}
+      - {name: actions, type: list[string], required: true, description: Buttons and outcomes}
+    outputs_template: frontend_ui
+  - category: Frontend
+    pattern: Hero sections/layouts
+    description: Marketing hero spec.
+    fields:
+      - {name: id, type: string, required: true, description: Section slug}
+      - {name: headline, type: string, required: true, description: Primary text}
+      - {name: subcopy, type: string, required: false, description: Supporting text}
+      - {name: media, type: object, required: false, description: Image/video reference}
+      - {name: ctas, type: list[string], required: false, description: Calls to action}
+    outputs_template: frontend_ui
+  - category: Frontend
+    pattern: Sidebar/navigation
+    description: Navigation tree spec.
+    fields:
+      - {name: id, type: string, required: true, description: Nav slug}
+      - {name: items, type: list[object], required: true, description: Links/labels/icons}
+      - {name: active_rule, type: string, required: false, description: Matching strategy}
+      - {name: roles, type: list[string], required: false, description: Visibility rules}
+    outputs_template: frontend_ui
+  - category: Frontend
+    pattern: Theming
+    description: Design tokens and themes.
+    fields:
+      - {name: id, type: string, required: true, description: Theme name}
+      - {name: tokens, type: object, required: true, description: Colors/typography/spacing}
+      - {name: dark_mode, type: boolean, required: false, description: Supports dark}
+      - {name: overrides, type: object, required: false, description: Component-level tweaks}
+    outputs_template: frontend_ui
+  - category: Frontend
+    pattern: Global state slices
+    description: Client state declaration.
+    fields:
+      - {name: id, type: string, required: true, description: Slice name}
+      - {name: shape, type: object, required: true, description: State schema}
+      - {name: actions, type: list[string], required: true, description: Reducer/effects}
+      - {name: persistence, type: string, required: false, description: Storage strategy}
+    outputs_template: frontend_ui
+  - category: Frontend
+    pattern: API clients
+    description: Typed client definitions.
+    fields:
+      - {name: id, type: string, required: true, description: Client name}
+      - {name: endpoints, type: list[string], required: true, description: Endpoint refs}
+      - {name: retries, type: object, required: false, description: Retry policy}
+      - {name: auth, type: string, required: false, description: Token/header rules}
+    outputs_template: frontend_ui
+  - category: Frontend
+    pattern: Error boundaries
+    description: Boundary definitions.
+    fields:
+      - {name: id, type: string, required: true, description: Boundary slug}
+      - {name: scope, type: enum[app, route, component], required: true, description: Coverage}
+      - {name: fallback_ui, type: string, required: true, description: Component name}
+      - {name: report_channel, type: string, required: false, description: Logging/telemetry}
+    outputs_template: frontend_ui
+  - category: Frontend
+    pattern: Toast notifications
+    description: Toast templates.
+    fields:
+      - {name: id, type: string, required: true, description: Toast key}
+      - {name: trigger, type: string, required: true, description: Event trigger}
+      - {name: variant, type: enum[info,success,warning,error], required: true, description: Style}
+      - {name: message, type: string, required: true, description: Copy}
+      - {name: duration, type: duration, required: false, description: Auto-dismiss time}
+    outputs_template: frontend_ui
+  - category: Frontend
+    pattern: Responsive rules
+    description: Breakpoint behaviors.
+    fields:
+      - {name: id, type: string, required: true, description: Rule set}
+      - {name: breakpoints, type: object, required: true, description: Sizes}
+      - {name: behaviors, type: list[string], required: true, description: Layout changes}
+    outputs_template: frontend_ui
+  - category: Frontend
+    pattern: Component libraries
+    description: Library-level manifest.
+    fields:
+      - {name: id, type: string, required: true, description: Library name}
+      - {name: components, type: list[string], required: true, description: Component ids}
+      - {name: tokens_ref, type: string, required: false, description: Theme link}
+      - {name: distribution, type: enum[esm,cjs], required: false, description: Build target}
+    outputs_template: frontend_ui
+  - category: Frontend
+    pattern: Live previews
+    description: Preview surface definitions.
+    fields:
+      - {name: id, type: string, required: true, description: Preview slug}
+      - {name: data_source, type: string, required: true, description: Query or mock}
+      - {name: render_component, type: string, required: true, description: Component id}
+      - {name: refresh_interval, type: duration, required: false, description: Auto-refresh}
+    outputs_template: frontend_ui
+  - category: Frontend
+    pattern: Real-time listeners
+    description: Subscription definitions.
+    fields:
+      - {name: id, type: string, required: true, description: Listener slug}
+      - {name: channel, type: string, required: true, description: Topic/socket channel}
+      - {name: auth, type: string, required: false, description: Token/subscription rules}
+      - {name: handler, type: string, required: true, description: Callback}
+    outputs_template: frontend_ui
+  - category: Frontend
+    pattern: Settings pages
+    description: Settings surface spec.
+    fields:
+      - {name: id, type: string, required: true, description: Page slug}
+      - {name: sections, type: list[object], required: true, description: Section definitions}
+      - {name: data_bindings, type: object, required: true, description: Reads/writes to endpoints}
+      - {name: permissions, type: object, required: false, description: Visibility/edit rules}
+    outputs_template: frontend_ui
+  # ----------------------------- Data & ML -----------------------------
+  - category: Data & ML
+    pattern: ETL pipelines
+    description: Ingest/transform/load graph.
+    fields:
+      - {name: id, type: string, required: true, description: Pipeline id}
+      - {name: sources, type: list[object], required: true, description: Input datasets}
+      - {name: transforms, type: list[object], required: true, description: Steps/functions}
+      - {name: sinks, type: list[object], required: true, description: Outputs}
+      - {name: schedule, type: cron|duration, required: false, description: Run cadence}
+    outputs_template: data_ml
+  - category: Data & ML
+    pattern: Feature preprocessing
+    description: Feature engineering recipe.
+    fields:
+      - {name: id, type: string, required: true, description: Feature set}
+      - {name: inputs, type: list[string], required: true, description: Source columns}
+      - {name: transforms, type: list[object], required: true, description: Steps e.g., scaling}
+      - {name: outputs, type: list[string], required: true, description: Derived feature names}
+    outputs_template: data_ml
+  - category: Data & ML
+    pattern: Validation checks
+    description: Data quality rules.
+    fields:
+      - {name: id, type: string, required: true, description: Check slug}
+      - {name: target, type: enum[column, dataset], required: true, description: Scope}
+      - {name: rule, type: string, required: true, description: Assertion}
+      - {name: threshold, type: number, required: false, description: Acceptable failure rate}
+      - {name: severity, type: enum[warn,fail], required: true, description: Action}
+    outputs_template: data_ml
+  - category: Data & ML
+    pattern: Model definitions
+    description: Trainable model manifest.
+    fields:
+      - {name: id, type: string, required: true, description: Model name}
+      - {name: task, type: enum[classification, regression, generation], required: true, description: Task type}
+      - {name: architecture, type: string, required: true, description: Model family}
+      - {name: inputs, type: list[string], required: true, description: Input feature names}
+      - {name: outputs, type: list[string], required: true, description: Target labels}
+      - {name: hyperparams, type: object, required: false, description: Tunables}
+    outputs_template: data_ml
+  - category: Data & ML
+    pattern: Training loops
+    description: Training job config.
+    fields:
+      - {name: id, type: string, required: true, description: Training run id}
+      - {name: model_ref, type: string, required: true, description: Model id}
+      - {name: dataset, type: string, required: true, description: Dataset id}
+      - {name: epochs, type: integer, required: true, description: Epoch count}
+      - {name: optimizer, type: object, required: true, description: Optimizer config}
+      - {name: callbacks, type: list[string], required: false, description: Early stop/checkpoints}
+    outputs_template: data_ml
+  - category: Data & ML
+    pattern: Fine-tuning config
+    description: Fine-tune specification.
+    fields:
+      - {name: id, type: string, required: true, description: FT id}
+      - {name: base_model, type: string, required: true, description: Base model ref}
+      - {name: dataset, type: string, required: true, description: Dataset id}
+      - {name: lr_schedule, type: object, required: false, description: Learning rate plan}
+      - {name: eval_metrics, type: list[string], required: false, description: Metrics}
+    outputs_template: data_ml
+  - category: Data & ML
+    pattern: Inference endpoints
+    description: Serving config.
+    fields:
+      - {name: id, type: string, required: true, description: Endpoint id}
+      - {name: model_ref, type: string, required: true, description: Model id}
+      - {name: input_schema, type: object, required: true, description: Request schema}
+      - {name: output_schema, type: object, required: true, description: Response schema}
+      - {name: latency_sla, type: duration, required: false, description: Target latency}
+      - {name: autoscale, type: object, required: false, description: Scale policy}
+    outputs_template: data_ml
+  - category: Data & ML
+    pattern: Monitoring/metrics
+    description: Model/data monitors.
+    fields:
+      - {name: id, type: string, required: true, description: Monitor id}
+      - {name: signals, type: list[string], required: true, description: Metrics/logs to collect}
+      - {name: thresholds, type: object, required: false, description: Alert thresholds}
+      - {name: cadence, type: duration, required: false, description: Eval interval}
+    outputs_template: data_ml
+  - category: Data & ML
+    pattern: Drift rules
+    description: Drift detection config.
+    fields:
+      - {name: id, type: string, required: true, description: Drift rule id}
+      - {name: monitored_features, type: list[string], required: true, description: Features to watch}
+      - {name: method, type: enum[ks, psi, kl], required: true, description: Drift test}
+      - {name: threshold, type: number, required: true, description: Alert threshold}
+      - {name: action, type: string, required: false, description: Auto-mitigation}
+    outputs_template: data_ml
+  - category: Data & ML
+    pattern: Batch jobs
+    description: Batch job spec.
+    fields:
+      - {name: id, type: string, required: true, description: Job id}
+      - {name: entrypoint, type: string, required: true, description: Script/task name}
+      - {name: schedule, type: cron|duration, required: false, description: Cadence}
+      - {name: resources, type: object, required: false, description: CPU/GPU/memory}
+      - {name: inputs, type: list[object], required: false, description: Upstream datasets}
+      - {name: outputs, type: list[object], required: false, description: Produced artifacts}
+    outputs_template: data_ml
+  - category: Data & ML
+    pattern: Data schemas
+    description: Dataset schemas.
+    fields:
+      - {name: id, type: string, required: true, description: Dataset name}
+      - {name: fields, type: list[field], required: true, description: Columns}
+      - {name: primary_key, type: list[string], required: false, description: Keys}
+      - {name: partitioning, type: object, required: false, description: Partition columns}
+      - {name: retention, type: duration, required: false, description: Retention policy}
+    outputs_template: data_ml
+  - category: Data & ML
+    pattern: Storage rules
+    description: Storage policies.
+    fields:
+      - {name: id, type: string, required: true, description: Storage rule id}
+      - {name: location, type: string, required: true, description: Bucket/path}
+      - {name: format, type: enum[parquet,csv,json], required: true, description: File format}
+      - {name: encryption, type: string, required: false, description: Encryption rules}
+      - {name: access, type: object, required: true, description: IAM policy}
+    outputs_template: data_ml
+  - category: Data & ML
+    pattern: ML training jobs
+    description: Train/eval-ready job spec.
+    fields:
+      - {name: id, type: string, required: true, description: Job id}
+      - {name: model_ref, type: string, required: true, description: Model to train}
+      - {name: dataset, type: string, required: true, description: Training dataset ref}
+      - {name: objective, type: string, required: true, description: Primary metric or task}
+      - {name: hyperparams, type: object, required: false, description: Tunables for the run}
+      - {name: resources, type: object, required: false, description: CPU/GPU/memory needs}
+      - {name: checkpoints, type: object, required: false, description: Location/frequency for saves}
+      - {name: eval_metrics, type: list[string], required: false, description: Metrics computed during training}
+    outputs_template: data_ml
+  - category: Data & ML
+    pattern: ML eval jobs
+    description: Standalone evaluation spec.
+    fields:
+      - {name: id, type: string, required: true, description: Eval job id}
+      - {name: model_ref, type: string, required: true, description: Model under test}
+      - {name: dataset, type: string, required: true, description: Eval dataset ref}
+      - {name: metrics, type: list[string], required: true, description: Metrics to compute}
+      - {name: thresholds, type: object, required: false, description: Pass/fail cutoffs}
+      - {name: batch_size, type: integer, required: false, description: Inference batch size}
+      - {name: runner, type: string, required: false, description: Harness or entrypoint}
+    outputs_template: data_ml
+  - category: Data & ML
+    pattern: ML quantization jobs
+    description: Model compression spec.
+    fields:
+      - {name: id, type: string, required: true, description: Quantization job id}
+      - {name: source_model, type: string, required: true, description: Base model artifact/ref}
+      - {name: method, type: enum[static,dynamic,qat], required: true, description: Quantization approach}
+      - {name: target_precision, type: enum[int8,fp16,bf16], required: true, description: Output precision}
+      - {name: calibration_dataset, type: string, required: false, description: Calibration data ref}
+      - {name: target_hardware, type: string, required: false, description: Intended accelerator/CPU}
+      - {name: accuracy_tolerance, type: number, required: false, description: Allowed metric drop}
+    outputs_template: data_ml
+  - category: Data & ML
+    pattern: ML inference profiles
+    description: Serving profile for a model.
+    fields:
+      - {name: id, type: string, required: true, description: Profile id}
+      - {name: model_ref, type: string, required: true, description: Model artifact/ref}
+      - {name: runtime, type: string, required: true, description: Serving stack or engine}
+      - {name: hardware, type: string, required: false, description: Host/gpu type}
+      - {name: latency_sla, type: duration, required: false, description: Target pXX latency}
+      - {name: max_batch_size, type: integer, required: false, description: Batch size cap}
+      - {name: concurrency, type: integer, required: false, description: Max concurrent requests}
+      - {name: scaling, type: object, required: false, description: Autoscale/replica policy}
+      - {name: endpoints, type: list[object], required: false, description: Protocol/route details}
+    outputs_template: data_ml
+  # ----------------------------- Agent/AI -----------------------------
+  - category: Agent/AI
+    pattern: Task definitions
+    description: Agent task contracts.
+    fields:
+      - {name: id, type: string, required: true, description: Task slug}
+      - {name: goal, type: string, required: true, description: Objective}
+      - {name: inputs, type: object, required: true, description: Required context}
+      - {name: success_criteria, type: list[string], required: true, description: What success means}
+      - {name: stop_conditions, type: list[string], required: false, description: When to halt}
+    outputs_template: backend_endpoint
+  - category: Agent/AI
+    pattern: Tool schemas
+    description: Agent tool manifests.
+    fields:
+      - {name: id, type: string, required: true, description: Tool name}
+      - {name: input_schema, type: object, required: true, description: Parameters}
+      - {name: output_schema, type: object, required: true, description: Result format}
+      - {name: safety, type: list[string], required: false, description: Guards}
+      - {name: implementation, type: string, required: false, description: Backing function}
+    outputs_template: backend_endpoint
+  - category: Agent/AI
+    pattern: Memory schemas
+    description: Memory store contracts.
+    fields:
+      - {name: id, type: string, required: true, description: Memory name}
+      - {name: modality, type: enum[text, vector, key_value], required: true, description: Storage type}
+      - {name: ttl, type: duration, required: false, description: Retention}
+      - {name: schema, type: list[field], required: true, description: Stored fields}
+      - {name: indexing, type: object, required: false, description: Vector/index params}
+    outputs_template: backend_model
+  - category: Agent/AI
+    pattern: Policy rules
+    description: Behavioral guardrails.
+    fields:
+      - {name: id, type: string, required: true, description: Policy id}
+      - {name: scope, type: enum[tool,use_case,global], required: true, description: Applicability}
+      - {name: rules, type: list[string], required: true, description: Allowed/blocked actions}
+      - {name: enforcement, type: object, required: true, description: Runtime checks}
+    outputs_template: backend_endpoint
+  - category: Agent/AI
+    pattern: Safety constraints
+    description: Safety bounding box.
+    fields:
+      - {name: id, type: string, required: true, description: Constraint id}
+      - {name: forbidden, type: list[string], required: false, description: Prohibited topics/actions}
+      - {name: redaction, type: list[string], required: false, description: PII/secret handling}
+      - {name: escalation, type: object, required: false, description: Escalation path}
+    outputs_template: backend_endpoint
+  - category: Agent/AI
+    pattern: Self-play loops
+    description: Self-play loop config.
+    fields:
+      - {name: id, type: string, required: true, description: Loop id}
+      - {name: environment, type: object, required: true, description: Env description}
+      - {name: evaluator, type: object, required: true, description: Scoring mechanism}
+      - {name: reward_function, type: object, required: true, description: Reward calculation}
+      - {name: max_steps, type: integer, required: false, description: Termination limit}
+    outputs_template: data_ml
+  - category: Agent/AI
+    pattern: Reward definitions
+    description: Reward function spec.
+    fields:
+      - {name: id, type: string, required: true, description: Reward id}
+      - {name: inputs, type: list[string], required: true, description: Signals used}
+      - {name: formula, type: string, required: true, description: Reward formula}
+      - {name: bounds, type: object, required: false, description: Min/max}
+    outputs_template: data_ml
+  - category: Agent/AI
+    pattern: Prompt templates
+    description: Prompt assets.
+    fields:
+      - {name: id, type: string, required: true, description: Prompt name}
+      - {name: content, type: string, required: true, description: Template text with slots}
+      - {name: variables, type: list[string], required: true, description: Slot names}
+      - {name: guardrails, type: list[string], required: false, description: Safety hints}
+      - {name: model_hints, type: object, required: false, description: Temperature/top_p/etc}
+    outputs_template: backend_endpoint
+  - category: Agent/AI
+    pattern: Evaluation scripts
+    description: Eval suite definitions.
+    fields:
+      - {name: id, type: string, required: true, description: Eval id}
+      - {name: dataset, type: string, required: true, description: Dataset ref}
+      - {name: metrics, type: list[string], required: true, description: Metrics to compute}
+      - {name: harness, type: enum[pytest,openai_evals,custom], required: true, description: Runner}
+      - {name: thresholds, type: object, required: false, description: Minimum scores}
+    outputs_template: data_ml
+  # ----------------------------- Infra -----------------------------
+  - category: Infra
+    pattern: Docker templates
+    description: Container build spec.
+    fields:
+      - {name: id, type: string, required: true, description: Image name}
+      - {name: base_image, type: string, required: true, description: Base}
+      - {name: entrypoint, type: string, required: true, description: Entrypoint command}
+      - {name: exposed_ports, type: list[integer], required: false, description: Ports}
+      - {name: build_args, type: object, required: false, description: Args}
+    outputs_template: infra
+  - category: Infra
+    pattern: Deployments
+    description: Deploy target config.
+    fields:
+      - {name: id, type: string, required: true, description: Service name}
+      - {name: replicas, type: integer, required: true, description: Desired replicas}
+      - {name: image, type: string, required: true, description: Image ref}
+      - {name: env, type: object, required: false, description: Env vars}
+      - {name: resources, type: object, required: false, description: CPU/memory limits}
+    outputs_template: infra
+  - category: Infra
+    pattern: Autoscaling
+    description: Autoscale policies.
+    fields:
+      - {name: id, type: string, required: true, description: Policy id}
+      - {name: target, type: enum[cpu,memory,rps,queue_depth], required: true, description: Metric}
+      - {name: min_replicas, type: integer, required: true, description: Floor}
+      - {name: max_replicas, type: integer, required: true, description: Ceiling}
+      - {name: thresholds, type: object, required: true, description: Scale rules}
+    outputs_template: infra
+  - category: Infra
+    pattern: Load balancers
+    description: LB config.
+    fields:
+      - {name: id, type: string, required: true, description: LB name}
+      - {name: listeners, type: list[object], required: true, description: Ports/protocols}
+      - {name: targets, type: list[string], required: true, description: Target services}
+      - {name: health_checks, type: object, required: false, description: HC config}
+    outputs_template: infra
+  - category: Infra
+    pattern: Metrics dashboards
+    description: Dashboard specs.
+    fields:
+      - {name: id, type: string, required: true, description: Dashboard name}
+      - {name: panels, type: list[object], required: true, description: Visuals/queries}
+      - {name: data_sources, type: list[string], required: true, description: Prom/Grafana sources}
+      - {name: alerts, type: list[object], required: false, description: Alert rules}
+    outputs_template: infra
+  - category: Infra
+    pattern: Log pipelines
+    description: Log route config.
+    fields:
+      - {name: id, type: string, required: true, description: Pipeline id}
+      - {name: sources, type: list[string], required: true, description: Emitters}
+      - {name: processors, type: list[string], required: false, description: Filters/enrichers}
+      - {name: sinks, type: list[string], required: true, description: Destinations}
+      - {name: retention, type: duration, required: false, description: Retention}
+    outputs_template: infra
+  - category: Infra
+    pattern: Secrets management
+    description: Secret storage rules.
+    fields:
+      - {name: id, type: string, required: true, description: Secret policy id}
+      - {name: secrets, type: list[string], required: true, description: Secret keys}
+      - {name: storage, type: enum[aws_secrets, gcp_sm, vault, local], required: true, description: Backend}
+      - {name: rotation, type: duration, required: false, description: Rotation frequency}
+      - {name: access_policy, type: object, required: true, description: IAM rules}
+    outputs_template: infra
+  - category: Infra
+    pattern: Permissions/IAM
+    description: IAM roles/policies.
+    fields:
+      - {name: id, type: string, required: true, description: Role/policy id}
+      - {name: principals, type: list[string], required: true, description: Users/roles/groups}
+      - {name: actions, type: list[string], required: true, description: Allowed actions}
+      - {name: resources, type: list[string], required: true, description: Resource ARNs}
+      - {name: conditions, type: list[string], required: false, description: Conditional clauses}
+    outputs_template: infra
+  - category: Infra
+    pattern: SSL & domains
+    description: Domain + TLS config.
+    fields:
+      - {name: id, type: string, required: true, description: Domain entry}
+      - {name: domain, type: string, required: true, description: DNS name}
+      - {name: certificate, type: string, required: true, description: Cert source}
+      - {name: renewal, type: duration, required: false, description: Renewal window}
+    outputs_template: infra
+  - category: Infra
+    pattern: CICD workflows
+    description: CI/CD pipeline spec.
+    fields:
+      - {name: id, type: string, required: true, description: Workflow id}
+      - {name: triggers, type: list[string], required: true, description: Push/pr/tag/schedule}
+      - {name: jobs, type: list[object], required: true, description: Steps/stages}
+      - {name: secrets, type: list[string], required: false, description: Secret refs}
+      - {name: artifacts, type: list[string], required: false, description: Build artifacts}
+    outputs_template: infra

@@ -1,0 +1,6 @@
+pattern: agent_ai.prompt_templates
+id: prompt_templates
+content: prompt_templates content
+variables:
+- user_name
+- plan

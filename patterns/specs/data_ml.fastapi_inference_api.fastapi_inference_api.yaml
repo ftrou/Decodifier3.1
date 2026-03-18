@@ -1,0 +1,8 @@
+pattern: data_ml.fastapi_inference_api
+id: fastapi_inference_api
+model_ref: fastapi_inference_api_model_ref
+path: /fastapi-inference-api
+input_schema:
+  type: object
+output_schema:
+  type: object

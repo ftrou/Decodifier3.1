@@ -1,0 +1,8 @@
+pattern: frontend.responsive_rules
+id: responsive_rules
+breakpoints:
+  sm: 640
+  md: 768
+behaviors:
+  collapseSidebar:
+  - sm

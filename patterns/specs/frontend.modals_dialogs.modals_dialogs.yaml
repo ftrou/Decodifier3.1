@@ -1,0 +1,8 @@
+pattern: frontend.modals_dialogs
+id: modals_dialogs
+trigger: open
+content: modals_dialogs content
+actions:
+- create
+- read
+- update

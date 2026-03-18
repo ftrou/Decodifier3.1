@@ -1,0 +1,25 @@
+pattern: backend.request_response_schemas
+id: user_payload_v1
+version: v1
+properties:
+  - name: id
+    type: uuid
+    required: true
+  - name: email
+    type: string
+    required: true
+    validation: email
+  - name: name
+    type: string
+    required: true
+  - name: created_at
+    type: datetime
+    required: true
+    description: ISO-8601 UTC timestamp
+examples:
+  - id: 1b4f8ad6-8c9c-4b8b-bf7a-6f77ef0b9c1d
+    email: user@example.com
+    name: Pat Lee
+    created_at: "2024-01-01T12:00:00Z"
+invariants:
+  - email contains '@'

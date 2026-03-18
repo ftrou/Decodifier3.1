@@ -1,0 +1,5 @@
+pattern: agent_ai.self_play_loops
+id: self_play_loops
+environment: simulated_users
+evaluator: human_review
+reward_function: accuracy_delta

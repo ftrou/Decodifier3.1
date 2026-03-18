@@ -1,0 +1,5 @@
+pattern: frontend.toast_notifications
+id: toast_notifications
+trigger: open
+variant: success
+message: validation failed

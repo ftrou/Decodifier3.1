@@ -1,0 +1,6 @@
+pattern: data_and_ml.data_schemas
+id: data_schemas
+fields:
+- name: id
+  type: string
+  required: true

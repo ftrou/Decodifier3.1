@@ -1,0 +1,20 @@
+pattern: backend.config_schemas
+id: service_config
+fields:
+  - name: max_sessions_per_user
+    type: integer
+    required: true
+    default: 5
+  - name: welcome_email_template
+    type: string
+    required: true
+    default: welcome_v1
+  - name: session_ttl_minutes
+    type: integer
+    required: true
+    default: 60
+secrets:
+  - smtp_password
+env_overrides:
+  - MAX_SESSIONS_PER_USER
+  - SESSION_TTL_MINUTES

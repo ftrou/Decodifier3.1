@@ -1,0 +1,25 @@
+pattern: backend.http_endpoint
+id: read_user
+method: GET
+path: /users/{id}
+inputs:
+  path_params:
+    id:
+      type: uuid
+  query:
+    include_inactive:
+      type: boolean
+      default: false
+outputs:
+  200:
+    description: User found
+    schema_ref: backend.model:user
+  404:
+    description: User not found
+constraints:
+  - idempotent: true
+  - rate_limit:
+      max_requests: 120
+      window_seconds: 60
+auth:
+  roles: [admin, support]

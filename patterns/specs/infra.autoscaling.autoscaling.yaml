@@ -1,0 +1,8 @@
+pattern: infra.autoscaling
+id: autoscaling
+target: cpu
+min_replicas: 1
+max_replicas: 3
+thresholds:
+  scale_up: 0.7
+  scale_down: 0.2

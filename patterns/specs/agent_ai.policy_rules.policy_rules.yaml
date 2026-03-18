@@ -1,0 +1,9 @@
+pattern: agent_ai.policy_rules
+id: policy_rules
+scope: agent
+rules:
+- field: email
+  rule: required
+enforcement:
+  type: rbac
+  location: gateway

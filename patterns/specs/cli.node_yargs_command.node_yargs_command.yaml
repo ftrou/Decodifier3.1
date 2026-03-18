@@ -1,0 +1,5 @@
+pattern: cli.node_yargs_command
+id: node_yargs_command
+summary: node yargs command command
+command: node_yargs_command
+handler: handle_node_yargs_command

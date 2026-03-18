@@ -1,0 +1,8 @@
+pattern: data_and_ml.etl_pipelines
+id: etl_pipelines
+sources:
+- postgres
+transforms:
+- clean_emails
+sinks:
+- warehouse

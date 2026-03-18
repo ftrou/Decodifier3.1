@@ -1,0 +1,7 @@
+pattern: infra.metrics_dashboards
+id: metrics_dashboards
+panels:
+- title: Requests
+  query: rate(http_requests_total[5m])
+data_sources:
+- prometheus

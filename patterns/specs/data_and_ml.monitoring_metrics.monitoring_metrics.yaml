@@ -1,0 +1,5 @@
+pattern: data_and_ml.monitoring_metrics
+id: monitoring_metrics
+signals:
+- accuracy
+- latency

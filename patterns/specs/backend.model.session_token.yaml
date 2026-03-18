@@ -1,0 +1,15 @@
+pattern: backend.model
+id: session_token
+fields:
+  - {name: id, type: uuid, required: true, primary_key: true}
+  - {name: user_id, type: uuid, required: true}
+  - {name: token, type: string, required: true, unique: true}
+  - {name: expires_at, type: datetime, required: true}
+relations: []
+crud_rules:
+  allowed_ops: [create, read, delete]
+  hooks:
+    before_create: [hash_token]
+    after_delete: [log_revocation]
+indexes:
+  - {fields: [token], unique: true}

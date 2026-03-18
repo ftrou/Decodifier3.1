@@ -1,0 +1,8 @@
+pattern: frontend.global_state_slices
+id: global_state_slices
+shape:
+  users: []
+actions:
+- create
+- read
+- update

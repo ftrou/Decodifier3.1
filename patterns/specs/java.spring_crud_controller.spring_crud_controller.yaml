@@ -1,0 +1,8 @@
+pattern: java.spring_crud_controller
+id: spring_crud_controller
+entity_ref: user
+base_path: /spring-crud-controller
+dto_schema:
+  request: UserDto
+  response: UserDto
+service_ref: UserService

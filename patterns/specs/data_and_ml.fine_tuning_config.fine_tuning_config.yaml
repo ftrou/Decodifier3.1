@@ -1,0 +1,4 @@
+pattern: data_and_ml.fine_tuning_config
+id: fine_tuning_config
+base_model: gpt-neo
+dataset: users_dataset

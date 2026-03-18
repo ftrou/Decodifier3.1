@@ -1,0 +1,4 @@
+pattern: agent_ai.llm_chat_fastapi
+id: llm_chat_fastapi
+route: /llm-chat-fastapi
+model: gpt-4

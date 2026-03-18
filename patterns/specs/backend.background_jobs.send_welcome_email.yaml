@@ -1,0 +1,15 @@
+pattern: backend.background_jobs
+id: send_welcome_email
+schedule: "*/5 * * * *"
+payload_schema:
+  type: object
+  fields:
+    - {name: user_id, type: uuid, required: true}
+    - {name: email, type: string, required: true}
+handler: send_welcome_email
+retry_policy:
+  max_attempts: 5
+  backoff_seconds: 30
+resources:
+  queue: user-notifications
+  dead_letter_queue: user-notifications-dlq

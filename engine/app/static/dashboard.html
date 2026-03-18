@@ -1,0 +1,831 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DeCodifier Dashboard</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #1f1c18;
+        --muted: #5f5a53;
+        --paper: #f9f4ec;
+        --paper-strong: #f0e7da;
+        --accent: #ef7b45;
+        --accent-deep: #b34017;
+        --line: #e2d7c9;
+        --shadow: rgba(33, 24, 17, 0.12);
+        --panel: #fff9f2;
+        --panel-strong: #fff1e1;
+        --mono: "Courier New", "Courier", monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Optima", "Candara", "Noto Sans", sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(239, 123, 69, 0.12), transparent 45%),
+          radial-gradient(circle at 85% 15%, rgba(20, 87, 127, 0.12), transparent 40%),
+          linear-gradient(120deg, var(--paper) 0%, #fffdf9 55%, var(--paper-strong) 100%);
+        color: var(--ink);
+        min-height: 100vh;
+      }
+
+      .decodifier-shell {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 2.5rem 1.5rem 3rem;
+      }
+
+      .decodifier-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(240px, 0.55fr);
+        gap: 1.5rem;
+        align-items: center;
+        padding: 1.75rem 2rem;
+        border-radius: 18px;
+        background: linear-gradient(140deg, var(--panel) 0%, #fff 60%, var(--panel-strong) 100%);
+        border: 1px solid var(--line);
+        box-shadow: 0 20px 40px var(--shadow);
+        animation: rise 640ms ease-out;
+      }
+
+      .decodifier-title h1 {
+        font-size: clamp(1.6rem, 2.5vw, 2.4rem);
+        margin: 0 0 0.4rem;
+        letter-spacing: 0.02em;
+      }
+
+      .decodifier-title p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .decodifier-controls {
+        display: grid;
+        gap: 0.6rem;
+        justify-items: stretch;
+      }
+
+      .decodifier-controls label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        color: var(--muted);
+      }
+
+      .decodifier-controls select,
+      .decodifier-controls button {
+        height: 2.6rem;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        font-size: 0.95rem;
+        padding: 0 0.85rem;
+      }
+
+      .decodifier-controls select {
+        background: #fff;
+      }
+
+      .decodifier-controls button {
+        background: var(--accent);
+        border-color: var(--accent-deep);
+        color: #fff7ef;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 120ms ease, box-shadow 120ms ease;
+      }
+
+      .decodifier-controls button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 18px rgba(239, 123, 69, 0.25);
+      }
+
+      .decodifier-panels {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+        gap: 1.2rem;
+        margin-top: 1.75rem;
+      }
+
+      .decodifier-panel {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 0.75rem 1rem 1rem;
+        background: rgba(255, 249, 242, 0.9);
+        display: flex;
+        flex-direction: column;
+        min-height: 240px;
+        box-shadow: 0 16px 32px rgba(33, 24, 17, 0.08);
+        animation: drift 600ms ease;
+      }
+
+      .decodifier-panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        margin-bottom: 0.6rem;
+      }
+
+      .decodifier-panel-header h2 {
+        font-size: 1rem;
+        margin: 0;
+        letter-spacing: 0.03em;
+      }
+
+      .decodifier-panel-header small {
+        font-size: 0.75rem;
+        color: var(--muted);
+      }
+
+      .decodifier-panel-header button {
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: #fff;
+        padding: 0.25rem 0.85rem;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        cursor: pointer;
+      }
+
+      .decodifier-panel-body {
+        flex: 1;
+        display: grid;
+        gap: 0.85rem;
+      }
+
+      .decodifier-panel-subsection h3 {
+        margin: 0 0 0.25rem;
+        font-size: 0.85rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+      }
+
+      .decodifier-list {
+        font-size: 0.85rem;
+        display: grid;
+        gap: 0.4rem;
+      }
+
+      .decodifier-scroll {
+        max-height: 220px;
+        overflow-y: auto;
+        padding-right: 0.25rem;
+      }
+
+      .decodifier-list-item {
+        padding: 0.4rem 0.55rem;
+        border-radius: 10px;
+        background: #fff;
+        border: 1px solid rgba(226, 215, 201, 0.6);
+      }
+
+      .pack-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.6rem;
+        padding: 0.45rem 0.6rem;
+        border-radius: 10px;
+        background: #fff;
+        border: 1px solid rgba(226, 215, 201, 0.6);
+      }
+
+      .pack-row button {
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: var(--paper);
+        padding: 0.2rem 0.75rem;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        cursor: pointer;
+      }
+
+      .decodifier-event {
+        border-bottom: 1px solid rgba(226, 215, 201, 0.7);
+        padding: 0.5rem 0;
+      }
+
+      .decodifier-event:last-child {
+        border-bottom: none;
+      }
+
+      .decodifier-event-kind {
+        font-weight: 600;
+      }
+
+      .decodifier-event-meta {
+        font-size: 0.7rem;
+        color: var(--muted);
+      }
+
+      .decodifier-event-payload {
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        white-space: pre-wrap;
+        word-break: break-word;
+        margin-top: 0.35rem;
+        color: #3a342e;
+      }
+
+      .decodifier-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.72rem;
+        color: var(--muted);
+      }
+
+      .decodifier-status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 0 3px rgba(239, 123, 69, 0.2);
+      }
+
+      .decodifier-empty {
+        padding: 0.6rem;
+        color: var(--muted);
+        font-style: italic;
+      }
+
+      .monospace {
+        font-family: var(--mono);
+      }
+
+      .decodifier-build-summary {
+        padding: 0.9rem 1rem;
+        border-radius: 12px;
+        border: 1px solid rgba(51, 48, 44, 0.08);
+        background: rgba(255, 255, 255, 0.85);
+        box-shadow: 0 12px 24px rgba(52, 44, 31, 0.08);
+      }
+
+      .decodifier-build-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.8rem;
+      }
+
+      .decodifier-build-time {
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+
+      .decodifier-build-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 0.75rem;
+      }
+
+      .decodifier-build-item span {
+        display: block;
+      }
+
+      .decodifier-build-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+
+      .decodifier-build-value {
+        font-weight: 600;
+        color: var(--primary);
+      }
+
+      @keyframes drift {
+        from {
+          transform: translateY(12px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      @keyframes rise {
+        from {
+          transform: translateY(20px) scale(0.98);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0) scale(1);
+          opacity: 1;
+        }
+      }
+
+      @media (max-width: 900px) {
+        .decodifier-hero {
+          grid-template-columns: 1fr;
+        }
+
+        .decodifier-panels {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="decodifier-shell">
+      <section class="decodifier-hero">
+        <div class="decodifier-title">
+          <h1>DeCodifier Dashboard</h1>
+          <p>Track pack coverage, project activity, and events for your DeCodifier engine.</p>
+        </div>
+        <div class="decodifier-controls">
+          <label for="decodifier-project-select">Active Project</label>
+          <select id="decodifier-project-select"></select>
+          <button id="decodifier-refresh-all" type="button">Refresh Dashboard</button>
+          <button id="generate-btn" type="button">Generate from Specs</button>
+          <div class="decodifier-status">
+            <span class="decodifier-status-dot"></span>
+            <span id="decodifier-status-label">Waiting for project data</span>
+          </div>
+        </div>
+      </section>
+
+      <div id="decodifier-panels" class="decodifier-panels">
+        <section class="decodifier-panel" id="packs-panel">
+          <header class="decodifier-panel-header">
+            <h2>Packs</h2>
+            <small id="packs-summary-label">No packs enabled</small>
+          </header>
+
+          <div class="decodifier-panel-body">
+            <div class="decodifier-panel-subsection">
+              <h3>Installed Packs</h3>
+              <div id="packs-installed" class="decodifier-list decodifier-scroll"></div>
+            </div>
+
+            <div class="decodifier-panel-subsection">
+              <h3>Enabled for Project</h3>
+              <div id="packs-enabled" class="decodifier-list decodifier-scroll"></div>
+            </div>
+
+            <div class="decodifier-panel-subsection">
+              <h3>Pack Specs (Read-only)</h3>
+              <div id="packs-specs" class="decodifier-list decodifier-scroll monospace"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="decodifier-panel" id="events-panel">
+          <header class="decodifier-panel-header">
+            <h2>Activity</h2>
+            <button id="events-refresh-btn" type="button">Refresh</button>
+          </header>
+
+          <div class="decodifier-panel-body">
+            <div id="build-summary" class="decodifier-build-summary">
+              <div class="decodifier-empty">No builds yet.</div>
+            </div>
+            <div class="decodifier-scroll" id="events-list">
+              <div class="decodifier-empty">Waiting for events...</div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <script>
+      const decodifierState = {
+        activeProjectId: null,
+        projects: [],
+        backendPatterns: null,
+      };
+
+      async function decodifierFetchJSON(url, options) {
+        const res = await fetch(url, options);
+        if (!res.ok) {
+          let detail = "";
+          try {
+            const body = await res.json();
+            detail = body.detail || JSON.stringify(body);
+          } catch (e) {
+            detail = res.statusText;
+          }
+          console.error("DeCodifier dashboard error", res.status, detail);
+          throw new Error(detail || `HTTP ${res.status}`);
+        }
+        return res.json();
+      }
+
+      const decodifierDashboard = {
+        async init() {
+          await this.loadProjects();
+
+          const refreshBtn = document.getElementById("events-refresh-btn");
+          if (refreshBtn) {
+            refreshBtn.addEventListener("click", () => this.refreshEvents());
+          }
+
+          const refreshAll = document.getElementById("decodifier-refresh-all");
+          if (refreshAll) {
+            refreshAll.addEventListener("click", () => this.refreshAll());
+          }
+
+          const generateBtn = document.getElementById("generate-btn");
+          if (generateBtn) {
+            generateBtn.addEventListener("click", () => this.generateFromSpecs());
+          }
+
+          const selector = document.getElementById("decodifier-project-select");
+          if (selector) {
+            selector.addEventListener("change", (event) => {
+              const value = event.target.value;
+              this.setActiveProject(value || null);
+            });
+          }
+        },
+
+        async loadProjects() {
+          const statusLabel = document.getElementById("decodifier-status-label");
+          const selector = document.getElementById("decodifier-project-select");
+          if (!selector) {
+            console.warn("No project selector element found");
+            return;
+          }
+
+          try {
+            const payload = await decodifierFetchJSON("/api/projects");
+            decodifierState.projects = Array.isArray(payload) ? payload : (payload.projects || []);
+            this.populateProjectSelect();
+
+            if (decodifierState.projects.length > 0) {
+              const preferred =
+                decodifierState.projects.find((project) => project.id === "core_backend")?.id ||
+                decodifierState.projects[0].id;
+              this.setActiveProject(preferred);
+            } else if (statusLabel) {
+              statusLabel.textContent = "No projects found";
+            }
+          } catch (err) {
+            console.error("Failed to load projects:", err);
+            if (statusLabel) {
+              statusLabel.textContent = "Failed to load projects";
+            }
+            selector.innerHTML = "";
+            const option = document.createElement("option");
+            option.textContent = "Error loading projects";
+            option.disabled = true;
+            option.selected = true;
+            selector.appendChild(option);
+          }
+        },
+
+        populateProjectSelect() {
+          const selector = document.getElementById("decodifier-project-select");
+          if (!selector) return;
+          selector.innerHTML = "";
+
+          if (decodifierState.projects.length === 0) {
+            const option = document.createElement("option");
+            option.textContent = "No projects found";
+            option.disabled = true;
+            option.selected = true;
+            selector.appendChild(option);
+            return;
+          }
+
+          decodifierState.projects.forEach((project) => {
+            const option = document.createElement("option");
+            option.value = project.id;
+            option.textContent = `${project.name || project.id} (${project.id})`;
+            selector.appendChild(option);
+          });
+        },
+
+        setActiveProject(projectId) {
+          decodifierState.activeProjectId = projectId;
+          const selector = document.getElementById("decodifier-project-select");
+          if (selector) {
+            selector.value = projectId || "";
+          }
+          this.refreshAll();
+        },
+
+        getActiveProject() {
+          return (
+            decodifierState.projects.find((project) => project.id === decodifierState.activeProjectId) || null
+          );
+        },
+
+        refreshAll() {
+          if (!decodifierState.activeProjectId) return;
+          this.refreshStatusLabel();
+          this.refreshBuildSummary();
+          this.refreshEvents();
+          this.refreshPacks();
+        },
+
+        refreshStatusLabel() {
+          const statusLabel = document.getElementById("decodifier-status-label");
+          const project = decodifierState.projects.find((p) => p.id === decodifierState.activeProjectId);
+          if (!statusLabel) return;
+          if (!project) {
+            statusLabel.textContent = "Waiting for project data";
+            return;
+          }
+          statusLabel.textContent = `Active: ${project.name || project.id}`;
+        },
+
+        async generateFromSpecs() {
+          const project = this.getActiveProject();
+          if (!project) return;
+          try {
+            const patterns = await this.getBackendPatterns();
+            const payload = {
+              spec_dir: "patterns/specs",
+              project_root: project.path || ".",
+              patterns,
+            };
+            const result = await decodifierFetchJSON("/patterns/build", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            });
+            this.renderBuildSummary(result);
+            await this.refreshEvents();
+          } catch (err) {
+            console.error("Failed to generate from specs", err);
+            alert("Failed to generate from specs.");
+          }
+        },
+
+        async getBackendPatterns() {
+          if (decodifierState.backendPatterns) {
+            return decodifierState.backendPatterns;
+          }
+          const data = await decodifierFetchJSON("/patterns/schemas");
+          const patterns = (data.schemas || [])
+            .map((schema) => schema.pattern)
+            .filter((pattern) => typeof pattern === "string" && pattern.startsWith("backend."));
+          decodifierState.backendPatterns = patterns;
+          return patterns;
+        },
+
+        renderBuildSummary(build) {
+          const summaryEl = document.getElementById("build-summary");
+          if (!summaryEl) return;
+          if (!build) {
+            summaryEl.innerHTML = '<div class="decodifier-empty">No builds yet.</div>';
+            return;
+          }
+          const patterns = build.pattern_ids || [];
+          const specs = build.specs_used || [];
+          const files = build.files_written || [];
+          const diagnostics = build.diagnostics || [];
+          const errorCount = diagnostics.reduce(
+            (total, item) => total + ((item.errors || []).length || 0),
+            0
+          );
+          const warningCount = diagnostics.reduce(
+            (total, item) => total + ((item.warnings || []).length || 0),
+            0
+          );
+
+          summaryEl.innerHTML = `
+            <div class="decodifier-build-header">
+              <strong>Last build</strong>
+              <span class="decodifier-build-time">${build.timestamp || "unknown time"}</span>
+            </div>
+            <div class="decodifier-build-grid">
+              <div class="decodifier-build-item">
+                <span class="decodifier-build-label">Project</span>
+                <span class="decodifier-build-value">${build.project_id || "unknown"}</span>
+              </div>
+              <div class="decodifier-build-item">
+                <span class="decodifier-build-label">Patterns</span>
+                <span class="decodifier-build-value">${patterns.length}</span>
+              </div>
+              <div class="decodifier-build-item">
+                <span class="decodifier-build-label">Specs</span>
+                <span class="decodifier-build-value">${specs.length}</span>
+              </div>
+              <div class="decodifier-build-item">
+                <span class="decodifier-build-label">Files</span>
+                <span class="decodifier-build-value">${files.length}</span>
+              </div>
+              <div class="decodifier-build-item">
+                <span class="decodifier-build-label">Errors</span>
+                <span class="decodifier-build-value">${errorCount}</span>
+              </div>
+              <div class="decodifier-build-item">
+                <span class="decodifier-build-label">Warnings</span>
+                <span class="decodifier-build-value">${warningCount}</span>
+              </div>
+            </div>
+          `;
+        },
+
+        async refreshBuildSummary() {
+          const project = this.getActiveProject();
+          if (!project) return;
+          const summaryEl = document.getElementById("build-summary");
+          if (summaryEl) {
+            summaryEl.innerHTML = '<div class="decodifier-empty">Loading build...</div>';
+          }
+          try {
+            const data = await decodifierFetchJSON(
+              `/patterns/builds/latest?project_root=${encodeURIComponent(project.path || ".")}`
+            );
+            this.renderBuildSummary(data.build);
+          } catch (err) {
+            console.error("Failed to load build summary", err);
+            if (summaryEl) {
+              summaryEl.innerHTML = '<div class="decodifier-empty">Failed to load build.</div>';
+            }
+          }
+        },
+
+        async togglePack(packName, isEnabled) {
+          const projectId = decodifierState.activeProjectId;
+          if (!projectId) return;
+
+          try {
+            const data = await decodifierFetchJSON(
+              `/api/projects/${encodeURIComponent(projectId)}/packs/specs`
+            );
+            const packs = data.packs || [];
+            const updated = isEnabled
+              ? packs.filter((name) => name !== packName)
+              : Array.from(new Set([...packs, packName]));
+
+            await decodifierFetchJSON(`/api/projects/${encodeURIComponent(projectId)}/packs`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ packs: updated }),
+            });
+            await this.refreshPacks();
+          } catch (err) {
+            console.error("Failed to toggle pack", err);
+            alert("Failed to update pack selection.");
+          }
+        },
+
+        async refreshEvents() {
+          const projectId = decodifierState.activeProjectId;
+          if (!projectId) return;
+
+          const listEl = document.getElementById("events-list");
+          if (!listEl) return;
+
+          listEl.innerHTML = '<div class="decodifier-empty">Loading events...</div>';
+
+          try {
+            const data = await decodifierFetchJSON(`/api/projects/${encodeURIComponent(projectId)}/events`);
+            const events = data.events || [];
+            if (events.length === 0) {
+              listEl.innerHTML = '<div class="decodifier-empty">No events yet.</div>';
+              return;
+            }
+
+            listEl.innerHTML = "";
+            const fragment = document.createDocumentFragment();
+            events
+              .slice()
+              .reverse()
+              .forEach((evt) => {
+                const div = document.createElement("div");
+                div.className = "decodifier-event";
+
+                const kind = document.createElement("div");
+                kind.className = "decodifier-event-kind";
+                kind.textContent = evt.kind || "";
+
+                const meta = document.createElement("div");
+                meta.className = "decodifier-event-meta";
+                meta.textContent = evt.ts || "";
+
+                const payload = document.createElement("pre");
+                payload.className = "decodifier-event-payload";
+                payload.textContent = JSON.stringify(evt.payload || {}, null, 2);
+
+                div.appendChild(kind);
+                div.appendChild(meta);
+                div.appendChild(payload);
+                fragment.appendChild(div);
+              });
+            listEl.appendChild(fragment);
+          } catch (err) {
+            console.error("Failed to load events", err);
+            listEl.innerHTML = '<div class="decodifier-empty">Failed to load events.</div>';
+          }
+        },
+
+        async refreshPacks() {
+          const projectId = decodifierState.activeProjectId;
+          if (!projectId) return;
+
+          const installedEl = document.getElementById("packs-installed");
+          const enabledEl = document.getElementById("packs-enabled");
+          const specsEl = document.getElementById("packs-specs");
+          const summaryEl = document.getElementById("packs-summary-label");
+
+          if (!installedEl || !enabledEl || !specsEl) return;
+
+          installedEl.innerHTML = '<div class="decodifier-empty">Loading...</div>';
+          enabledEl.innerHTML = '<div class="decodifier-empty">Loading...</div>';
+          specsEl.innerHTML = '<div class="decodifier-empty">Loading...</div>';
+
+          try {
+            const packsData = await decodifierFetchJSON("/api/packs");
+            const installed = packsData.packs || [];
+
+            const projectPacksData = await decodifierFetchJSON(
+              `/api/projects/${encodeURIComponent(projectId)}/packs/specs`
+            );
+            const enabledNames = projectPacksData.packs || [];
+            const specs = projectPacksData.specs || [];
+
+            installedEl.innerHTML = "";
+            if (installed.length === 0) {
+              installedEl.innerHTML = '<div class="decodifier-empty">No packs installed.</div>';
+            } else {
+              installed.forEach((pack) => {
+                const row = document.createElement("div");
+                row.className = "pack-row";
+                const manifest = pack.manifest || {};
+                const version = manifest.version || "0.0.0";
+                const description = manifest.description || "No description";
+                const label = document.createElement("span");
+                label.textContent = `${pack.name} @ ${version} - ${description}`;
+                const btn = document.createElement("button");
+                const isEnabled = enabledNames.includes(pack.name);
+                btn.type = "button";
+                btn.textContent = isEnabled ? "Disable" : "Enable";
+                btn.addEventListener("click", () => this.togglePack(pack.name, isEnabled));
+                row.appendChild(label);
+                row.appendChild(btn);
+                installedEl.appendChild(row);
+              });
+            }
+
+            enabledEl.innerHTML = "";
+            if (enabledNames.length === 0) {
+              enabledEl.innerHTML = '<div class="decodifier-empty">No packs enabled for this project.</div>';
+            } else {
+              enabledNames.forEach((name) => {
+                const div = document.createElement("div");
+                div.className = "decodifier-list-item";
+                div.textContent = name;
+                enabledEl.appendChild(div);
+              });
+            }
+
+            if (summaryEl) {
+              summaryEl.textContent =
+                enabledNames.length === 0
+                  ? "No packs enabled"
+                  : `${enabledNames.length} pack(s) enabled`;
+            }
+
+            specsEl.innerHTML = "";
+            if (specs.length === 0) {
+              specsEl.innerHTML = '<div class="decodifier-empty">No specs from packs.</div>';
+            } else {
+              specs.forEach((spec) => {
+                const block = document.createElement("details");
+                block.open = false;
+                const summary = document.createElement("summary");
+                const packName = spec.pack || "unknown";
+                const path = spec.path || "";
+                summary.textContent = `${packName} :: ${path}`;
+                const content = document.createElement("pre");
+                content.textContent = spec.content || "";
+                block.appendChild(summary);
+                block.appendChild(content);
+                specsEl.appendChild(block);
+              });
+            }
+          } catch (err) {
+            console.error("Failed to load packs/specs", err);
+            installedEl.innerHTML = '<div class="decodifier-empty">Failed to load packs.</div>';
+            enabledEl.innerHTML = '<div class="decodifier-empty">Failed to load project packs.</div>';
+            specsEl.innerHTML = '<div class="decodifier-empty">Failed to load pack specs.</div>';
+            if (summaryEl) summaryEl.textContent = "Error";
+          }
+        },
+      };
+
+      window.addEventListener("DOMContentLoaded", () => {
+        decodifierDashboard.init();
+      });
+
+      window.decodifierDashboard = decodifierDashboard;
+    </script>
+  </body>
+</html>

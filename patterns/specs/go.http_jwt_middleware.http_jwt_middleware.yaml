@@ -1,0 +1,5 @@
+pattern: go.http_jwt_middleware
+id: http_jwt_middleware
+issuer: https://auth.example.com/
+audience: api://default
+jwks_uri: https://auth.example.com/.well-known/jwks.json

@@ -1,0 +1,5 @@
+pattern: node.kafka_consumer
+id: kafka_consumer
+topic: user-events
+group_id: user-event-consumers
+handler: handle_kafka_consumer

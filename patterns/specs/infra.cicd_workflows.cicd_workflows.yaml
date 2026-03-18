@@ -1,0 +1,7 @@
+pattern: infra.cicd_workflows
+id: cicd_workflows
+triggers:
+- push
+jobs:
+- test
+- deploy

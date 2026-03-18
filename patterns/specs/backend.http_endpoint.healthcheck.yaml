@@ -1,0 +1,15 @@
+pattern: backend.http_endpoint
+id: healthcheck
+method: GET
+path: /health
+inputs: {}
+outputs:
+  200:
+    description: Service healthy
+    example:
+      status: ok
+      uptime_seconds: 0
+constraints:
+  - idempotent: true
+auth:
+  roles: [admin]

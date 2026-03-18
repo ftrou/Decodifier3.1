@@ -1,0 +1,10 @@
+pattern: infra.permissions_iam
+id: permissions_iam
+principals:
+- svc:user-service
+actions:
+- create
+- read
+- update
+resources:
+- user

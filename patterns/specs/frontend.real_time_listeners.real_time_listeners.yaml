@@ -1,0 +1,4 @@
+pattern: frontend.real_time_listeners
+id: real_time_listeners
+channel: users
+handler: handle_real_time_listeners

@@ -1,0 +1,6 @@
+pattern: frontend.react_form_validation
+id: react_form_validation
+form_ref: user_create
+rules:
+- field: email
+  rule: required

@@ -1,0 +1,5 @@
+pattern: frontend.api_clients
+id: api_clients
+endpoints:
+- /api/users
+- /api/sessions

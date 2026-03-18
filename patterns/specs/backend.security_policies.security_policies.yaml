@@ -1,0 +1,10 @@
+pattern: backend.security_policies
+id: security_policies
+surface: api
+controls:
+- audit
+- rate_limit
+ - mtls
+monitoring:
+  - authz_failure_rate
+  - anomaly_detection

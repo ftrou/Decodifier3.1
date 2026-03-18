@@ -1,0 +1,12 @@
+pattern: frontend.form
+id: user_create_form
+schema_ref: backend.model:user
+layout:
+  fields:
+    - email
+    - name
+submit_action: backend.http_endpoint:create_user
+validation_rules:
+  - required: [email, name]
+  - format:
+      email: email

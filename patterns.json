@@ -1,0 +1,138 @@
+{
+  "question": "How many spec-driven patterns can we define across the stack?",
+  "summary": {
+    "category_count": 6,
+    "pattern_count": 93
+  },
+  "categories": [
+    {
+      "name": "Backend",
+      "count": 32,
+      "patterns": [
+        "HTTP endpoints",
+        "CRUD models",
+        "Validation rules",
+        "Auth + permissions",
+        "Rate limits + quotas",
+        "Request/response schemas",
+        "Logging patterns",
+        "Exception handling",
+        "Background jobs",
+        "Scheduled tasks",
+        "Webhook endpoints",
+        "Notification triggers",
+        "API pagination",
+        "DB migrations",
+        "Caching strategy",
+        "Event publishing (Kafka/SQS)",
+        "Event subscribing",
+        "Retry policies",
+        "Idempotency rules",
+        "Security policies",
+        "Config schemas",
+        "Feature flags",
+        "A/B experiment wiring",
+        "Go HTTP CRUD router",
+        "Rust Axum CRUD router",
+        "Java Spring CRUD controller",
+        "Node Express JWT auth",
+        "Go HTTP JWT middleware",
+        "Node BullMQ worker",
+        "Python Celery worker",
+        "Node Kafka consumer",
+        "Go NATS subscriber"
+      ]
+    },
+    {
+      "name": "Frontend",
+      "count": 19,
+      "patterns": [
+        "Data forms",
+        "Validation",
+        "Data tables (sort, filter, paginate)",
+        "CRUD UI",
+        "Modals/dialogs",
+        "Hero sections/layouts",
+        "Sidebar/navigation",
+        "Theming",
+        "Global state slices",
+        "API clients",
+        "Error boundaries",
+        "Toast notifications",
+        "Responsive rules",
+        "Component libraries",
+        "Live previews",
+        "Real-time listeners",
+        "Settings pages",
+        "React CRUD table",
+        "React form validation"
+      ]
+    },
+    {
+      "name": "Data & ML",
+      "count": 17,
+      "patterns": [
+        "ETL pipelines",
+        "Feature preprocessing",
+        "Validation checks",
+        "Model definitions",
+        "Training loops",
+        "Fine-tuning config",
+        "Inference endpoints",
+        "FastAPI inference API",
+        "Monitoring/metrics",
+        "Drift rules",
+        "Batch jobs",
+        "Data schemas",
+        "Storage rules",
+        "ML training job",
+        "ML eval job",
+        "ML quantization job",
+        "ML inference profile"
+      ]
+    },
+    {
+      "name": "Agent/AI",
+      "count": 11,
+      "patterns": [
+        "Task definitions",
+        "Tool schemas",
+        "Memory schemas",
+        "Policy rules",
+        "Safety constraints",
+        "Self-play loops",
+        "Reward definitions",
+        "Prompt templates",
+        "Evaluation scripts",
+        "LLM chat (FastAPI)",
+        "LLM chat (Express)"
+      ]
+    },
+    {
+      "name": "Infra",
+      "count": 12,
+      "patterns": [
+        "Docker templates",
+        "Deployments",
+        "Autoscaling",
+        "Load balancers",
+        "Metrics dashboards",
+        "Log pipelines",
+        "Secrets management",
+        "Permissions/IAM",
+        "SSL & domains",
+        "CICD workflows",
+        "K8s deployment + service",
+        "Docker Compose service"
+      ]
+    },
+    {
+      "name": "CLI",
+      "count": 2,
+      "patterns": [
+        "Python Click command",
+        "Node Yargs command"
+      ]
+    }
+  ]
+}

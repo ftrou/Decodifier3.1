@@ -1,0 +1,6 @@
+pattern: infra.log_pipelines
+id: log_pipelines
+sources:
+- postgres
+sinks:
+- warehouse

@@ -1,0 +1,6 @@
+pattern: agent_ai.evaluation_scripts
+id: evaluation_scripts
+dataset: users_dataset
+metrics:
+- activation_rate
+harness: pytest

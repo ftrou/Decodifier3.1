@@ -1,0 +1,12 @@
+pattern: ml.eval_job
+id: classifier_eval
+model_ref: text_classifier_v1
+dataset: s3://datasets/text-classification/holdout.parquet
+metrics:
+  - accuracy
+  - f1
+thresholds:
+  accuracy: 0.9
+  f1: 0.88
+batch_size: 64
+runner: python eval.py

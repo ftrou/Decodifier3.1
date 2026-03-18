@@ -1,0 +1,9 @@
+pattern: data_and_ml.feature_preprocessing
+id: feature_preprocessing
+inputs:
+- email
+- plan
+transforms:
+- clean_emails
+outputs:
+- encoded_email
