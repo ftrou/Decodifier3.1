@@ -115,6 +115,4 @@ Not yet ready for:
 This is the alpha. Expect rough edges.
 Open issues, PRs, crashes, and questions welcome.
 
-## License
 
-MIT (placeholder)
