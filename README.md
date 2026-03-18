@@ -31,18 +31,11 @@ on precision, recall, caller/trace handling, and false-positive control.
 
 ### Codex Dogfood Run
 
-In a recent Codex-guided change on a separate local systems project, the task was to upgrade a
-calculator from basic arithmetic to a broader integer math feature set.
+In a recent Codex-guided change on a separate local systems project, the task was to upgrade a calculator from basic arithmetic to a broader integer-math feature set.
 
-DeCodifier changed the shape of that edit. Instead of stopping at the obvious calculator source
-file, it surfaced the real behavioral anchors: the interactive calculator implementation and the
-host-side mirrored logic that simulates and routes calculator behavior. That changed my plan as
-Codex from a likely single-file patch into a coordinated update across both execution paths, with
-focused verification to keep them aligned.
+DeCodifier changed the shape of the edit. Instead of stopping at the obvious calculator source file, it surfaced the real behavioral anchors: the interactive calculator implementation and the host-side mirrored logic that simulates and routes calculator behavior. That turned what looked like a single-file patch into a coordinated update across both execution paths.
 
-Practically, that meant DeCodifier made me less likely to trust the first plausible file and more
-likely to patch the actual caller and framework-relevant behavior. The result was a safer change:
-new math operations were added without drifting the tool-facing simulation away from the real app.
+As a result, Codex was less likely to trust the first plausible file and more likely to patch the actual behavior surfaces that needed to stay aligned. The final change added new math operations while keeping the tool-facing simulation in sync with the real calculator implementation, with focused verification on both sides..
 
 You can also test retrieval locally from the CLI:
 
