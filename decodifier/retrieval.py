@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import re
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Sequence
 
 DEFAULT_IGNORE = (
     ".git",
@@ -24,6 +24,8 @@ LOW_SIGNAL_FILE_STEMS = {"conftest"}
 AUTH_QUERY_HINTS = {"authentication", "token", "login", "session", "refresh", "scope", "validate", "expire"}
 AUTH_PATH_HINTS = {"auth", "authentication", "security", "session", "token", "permission", "permissions", "scope", "login"}
 CONTROL_FLOW_PATH_HINTS = {"controller", "service", "handler", "middleware", "guard", "policy", "dep", "route", "router"}
+ENTRYPOINT_PATH_HINTS = {"cli", "shell", "command", "commands", "dispatch", "router", "route", "controller", "handler", "prompt"}
+SIMULATION_PATH_HINTS = {"sim", "simulate", "simulation", "simulator", "bridge", "proxy", "emulator", "mirror", "host"}
 CALLER_PROMOTION_TERMS = {"check", "checked", "permission", "permissions", "scope", "trace", "flow", "caller", "callers", "called", "calls", "usage", "used"}
 PASSWORD_RESET_TOKENS = {"reset", "recovery", "email"}
 ACCESS_TOKEN_TOKENS = {"jwt", "decode", "oauth2", "credential", "current", "user", "forbidden", "403", "invalid"}
@@ -90,6 +92,21 @@ CANONICAL_TOKENS = {
     "handle": "handle",
     "handled": "handle",
     "handling": "handle",
+    "router": "route",
+    "routing": "route",
+    "routes": "route",
+    "commands": "command",
+    "dispatcher": "dispatch",
+    "dispatching": "dispatch",
+    "simulated": "simulate",
+    "simulator": "simulate",
+    "simulation": "simulate",
+    "mirrored": "mirror",
+    "mirror": "mirror",
+    "bridged": "bridge",
+    "calculator": "calc",
+    "calculation": "calc",
+    "calc": "calc",
     "generate": "generate",
     "generated": "generate",
     "generates": "generate",
@@ -109,12 +126,18 @@ CANONICAL_TOKENS = {
 
 QUERY_TOKEN_ALIASES = {
     "authentication": {"authentication", "authenticate", "auth", "login"},
+    "bridge": {"bridge", "proxy", "host", "session"},
+    "calc": {"calc", "calculator", "math"},
+    "command": {"command", "commands", "cli", "shell"},
+    "dispatch": {"dispatch", "route", "router", "handler"},
     "enforce": {"enforce", "validate", "verify", "decode", "assert", "require", "check"},
     "expire": {"expire", "expired", "timeout"},
     "generate": {"generate", "issue", "create", "encode"},
     "login": {"login", "signin", "authenticate", "credential"},
+    "mirror": {"mirror", "simulate", "simulation"},
     "refresh": {"refresh", "renew"},
     "scope": {"scope", "permission", "authorize", "allow"},
+    "simulate": {"simulate", "simulation", "mirror", "emulate"},
     "session": {"session", "cookie"},
     "token": {"token", "jwt", "bearer"},
     "validate": {"validate", "verify", "decode", "enforce", "check", "assert", "require", "has"},
@@ -123,6 +146,10 @@ QUERY_TOKEN_ALIASES = {
 QUERY_STOPWORDS = {"where", "is", "are", "the", "a", "an", "to", "and", "of"}
 NOISE_HINTS = {"banner", "notice", "summary", "label", "copy", "render", "build"}
 CALL_STOPWORDS = CONTROL_KEYWORDS | {"class", "def", "fn", "function", "new", "raise", "await", "match", "assert"}
+ENTRYPOINT_QUERY_HINTS = {"command", "entrypoint", "handler", "route", "router", "flow", "cli", "shell", "interactive", "prompt"}
+SIMULATION_QUERY_HINTS = {"simulate", "simulation", "simulator", "mirror", "bridge", "behavior"}
+REPL_QUERY_HINTS = {"repl", "prompt", "interactive", "console", "shell"}
+CHANGE_SURFACE_ORDER = ("entrypoint", "caller", "implementation", "guard", "dispatcher", "repl", "simulation", "bridge")
 
 
 def _matches_ignore(rel: Path, patterns: Iterable[str]) -> bool:
@@ -409,6 +436,7 @@ def _collect_symbols(root: Path, ignore: Iterable[str]) -> List[Dict[str, Any]]:
         symbol["caller_edges"] = []
     _attach_call_graph(symbols)
     _attach_fastapi_framework_edges(root, symbols)
+    _attach_behavior_surfaces(root, symbols)
     return symbols
 
 
@@ -530,6 +558,88 @@ def _append_framework_edge(source: Dict[str, Any], target: Dict[str, Any], *, co
     target.setdefault("caller_edges", []).append(
         {"key": _symbol_key(source), "confidence": confidence, "kind": "framework"}
     )
+
+
+def _snippet_text_lower(root: Path, symbol: Dict[str, Any]) -> str:
+    return _symbol_snippet(root, symbol).lower()
+
+
+def _behavior_surface_set(root: Path, symbol: Dict[str, Any]) -> set[str]:
+    if symbol["kind"] not in {"method", "function"}:
+        return set()
+
+    surfaces: set[str] = {"implementation"}
+    snippet_text = _snippet_text_lower(root, symbol)
+    name_tokens = set(_tokenize_text(symbol["symbol"]))
+    path_tokens = _path_tokens(symbol["path"])
+    snippet_tokens = set(_snippet_tokens(root, symbol))
+    framework_roles = set(symbol.get("framework_roles", []))
+
+    if framework_roles & {"fastapi_route", "fastapi_dependency"}:
+        surfaces.add("entrypoint")
+    if framework_roles & {"fastapi_guard"}:
+        surfaces.add("guard")
+
+    if symbol.get("call_edges") and (
+        path_tokens & CONTROL_FLOW_PATH_HINTS
+        or name_tokens & {"handle", "login", "read", "list", "create", "update", "delete", "run", "dispatch"}
+        or "entrypoint" in surfaces
+    ):
+        surfaces.add("caller")
+
+    if (
+        path_tokens & ENTRYPOINT_PATH_HINTS
+        or name_tokens & {"main", "run", "dispatch", "route", "handle", "command", "cli"}
+        or "sys_readline" in snippet_text
+        or "argparse" in snippet_text
+        or "click.command" in snippet_text
+        or "typer" in snippet_text
+    ):
+        surfaces.add("entrypoint")
+
+    if (
+        path_tokens & {"dispatch", "router", "route", "command", "commands"}
+        or name_tokens & {"dispatch", "route", "router", "command", "handle"}
+        or "command ==" in snippet_text
+        or "command ==" in snippet_text
+        or "startswith(\"run " in snippet_text
+        or "startswith('run " in snippet_text
+    ):
+        surfaces.add("dispatcher")
+
+    if (
+        "sys_readline" in snippet_text
+        or "readline(" in snippet_text
+        or ("while" in snippet_text and "prompt" in snippet_text)
+        or ("while" in snippet_text and "input(" in snippet_text)
+        or path_tokens & {"shell", "repl", "prompt"}
+    ):
+        surfaces.add("repl")
+
+    if (
+        path_tokens & SIMULATION_PATH_HINTS
+        or name_tokens & {"simulate", "mirror", "emulate"}
+        or "simulated" in snippet_text
+        or "simulation" in snippet_text
+        or "mirror" in snippet_text
+    ):
+        surfaces.add("simulation")
+
+    if (
+        path_tokens & {"bridge", "proxy", "qemu", "host"}
+        or name_tokens & {"bridge", "proxy"}
+        or "wait_for_text" in snippet_text
+        or "session.send" in snippet_text
+        or "qemu" in snippet_text
+    ):
+        surfaces.add("bridge")
+
+    return surfaces
+
+
+def _attach_behavior_surfaces(root: Path, symbols: List[Dict[str, Any]]) -> None:
+    for symbol in symbols:
+        symbol["behavior_surfaces"] = sorted(_behavior_surface_set(root, symbol))
 
 
 def _attach_fastapi_framework_edges(root: Path, symbols: List[Dict[str, Any]]) -> None:
@@ -687,8 +797,12 @@ def _score_symbol(root: Path, query: str, symbol: Dict[str, Any]) -> Dict[str, A
     path_tokens = _path_tokens(symbol["path"])
     snippet_tokens = set(_snippet_tokens(root, symbol))
     combined_tokens = name_tokens | path_tokens | snippet_tokens
+    matched_query_tokens = sorted(
+        token for token in query_tokens if _query_alias_group(token) & combined_tokens
+    )
     domain_hits = len(combined_tokens & (AUTH_QUERY_HINTS | AUTH_PATH_HINTS))
     framework_roles = set(symbol.get("framework_roles", []))
+    behavior_surfaces = set(symbol.get("behavior_surfaces", []))
     auth_enforcement_query = (
         ("token" in query_tokens or "authentication" in query_tokens or "session" in query_tokens)
         and ("validate" in query_tokens or "enforce" in query_tokens)
@@ -752,6 +866,20 @@ def _score_symbol(root: Path, query: str, symbol: Dict[str, Any]) -> Dict[str, A
         score -= 4.0
     if path_tokens & LOW_SIGNAL_PATH_PARTS:
         score -= 6.0
+    if "caller" in behavior_surfaces and _should_promote_callers(query):
+        score += 6.0
+    if "entrypoint" in behavior_surfaces and (query_tokens & ENTRYPOINT_QUERY_HINTS or _should_promote_callers(query)):
+        score += 7.0
+    if "dispatcher" in behavior_surfaces and query_tokens & {"command", "dispatch", "route", "handle", "calc"}:
+        score += 5.0
+    if "repl" in behavior_surfaces and query_tokens & REPL_QUERY_HINTS:
+        score += 4.0
+    if "simulation" in behavior_surfaces and query_tokens & (SIMULATION_QUERY_HINTS | {"calc", "command"}):
+        score += 5.0
+    if "bridge" in behavior_surfaces and query_tokens & {"bridge", "command", "simulate", "calc"}:
+        score += 4.0
+    if {"simulation", "bridge"} & behavior_surfaces and {"behavior", "flow"} & query_tokens:
+        score += 3.0
     if "fastapi_route" in framework_roles:
         if "scope" in query_tokens:
             score += 8.0
@@ -788,6 +916,7 @@ def _score_symbol(root: Path, query: str, symbol: Dict[str, Any]) -> Dict[str, A
         "path_hits": path_hits,
         "snippet_hits": snippet_hits,
         "domain_hits": domain_hits,
+        "matched_query_tokens": matched_query_tokens,
     }
 
 
@@ -802,6 +931,48 @@ def _passes_confidence(scored_symbol: Dict[str, Any], query_tokens: set[str]) ->
     return True
 
 
+def _symbol_rationale(scored_symbol: Dict[str, Any]) -> List[str]:
+    rationale: List[str] = []
+    matched = scored_symbol.get("matched_query_tokens") or []
+    if matched:
+        rationale.append(f"matched query tokens: {', '.join(matched)}")
+    surfaces = scored_symbol.get("behavior_surfaces") or []
+    if surfaces:
+        rationale.append(f"behavior surfaces: {', '.join(surfaces)}")
+    framework_roles = scored_symbol.get("framework_roles") or []
+    if framework_roles:
+        rationale.append(f"framework roles: {', '.join(framework_roles)}")
+    if scored_symbol.get("graph_boost"):
+        rationale.append(
+            "graph lift: "
+            f"{scored_symbol.get('graph_direction', 'graph')} "
+            f"from {scored_symbol.get('graph_seed', 'seed')}"
+        )
+    if scored_symbol.get("trace_anchor"):
+        rationale.append(f"trace anchor: {scored_symbol['trace_anchor']}")
+    if scored_symbol.get("supporting_symbol"):
+        rationale.append(f"supporting context: {scored_symbol['supporting_symbol']['symbol']}")
+    return rationale
+
+
+def _symbol_debug(scored_symbol: Dict[str, Any]) -> Dict[str, Any]:
+    debug: Dict[str, Any] = {
+        "coverage_count": scored_symbol.get("coverage_count", 0),
+        "coverage_ratio": scored_symbol.get("coverage_ratio", 0.0),
+        "name_hits": scored_symbol.get("name_hits", 0),
+        "path_hits": scored_symbol.get("path_hits", 0),
+        "snippet_hits": scored_symbol.get("snippet_hits", 0),
+        "domain_hits": scored_symbol.get("domain_hits", 0),
+        "matched_query_tokens": scored_symbol.get("matched_query_tokens", []),
+        "behavior_surfaces": scored_symbol.get("behavior_surfaces", []),
+        "framework_roles": scored_symbol.get("framework_roles", []),
+    }
+    for key in ("graph_boost", "graph_seed", "graph_depth", "graph_direction", "trace_anchor"):
+        if key in scored_symbol:
+            debug[key] = scored_symbol[key]
+    return debug
+
+
 def _public_symbol(scored_symbol: Dict[str, Any]) -> Dict[str, Any]:
     public = {
         "symbol": scored_symbol["symbol"],
@@ -811,6 +982,9 @@ def _public_symbol(scored_symbol: Dict[str, Any]) -> Dict[str, Any]:
         "start_line": scored_symbol["start_line"],
         "end_line": scored_symbol["end_line"],
         "score": scored_symbol["score"],
+        "behavior_surfaces": list(scored_symbol.get("behavior_surfaces", [])),
+        "rationale": _symbol_rationale(scored_symbol),
+        "debug": _symbol_debug(scored_symbol),
     }
     if scored_symbol.get("container"):
         public["container"] = scored_symbol["container"]
@@ -1211,6 +1385,86 @@ def _find_supporting_symbol(symbols: List[Dict[str, Any]], current: Dict[str, An
     return None
 
 
+def _surface_candidate_pool(
+    root_path: Path,
+    query: str,
+    *,
+    symbols: List[Dict[str, Any]],
+    ranked: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    query_tokens = set(_tokenize_text(query))
+    methods_by_key = {
+        _symbol_key(symbol): symbol
+        for symbol in symbols
+        if symbol["kind"] in {"method", "function"}
+    }
+    scored_by_key = {_symbol_key(item): dict(item) for item in ranked}
+
+    for seed in ranked[: min(3, len(ranked))]:
+        seed_key = _symbol_key(seed)
+        for edge in list(seed.get("call_edges", [])) + list(seed.get("caller_edges", [])):
+            candidate = _load_graph_candidate(
+                root_path,
+                query,
+                query_tokens=query_tokens,
+                by_key=methods_by_key,
+                scored_by_key=scored_by_key,
+                key=edge["key"],
+            )
+            if candidate is None:
+                continue
+            if edge["key"] == seed_key:
+                continue
+
+    return _sort_ranked_symbols(list(scored_by_key.values()))
+
+
+def _surface_bundle_item(surface: str, symbol: Dict[str, Any]) -> Dict[str, Any]:
+    item = _public_symbol(symbol)
+    item["surface"] = surface
+    return item
+
+
+def _build_surface_bundle(
+    root_path: Path,
+    query: str,
+    *,
+    symbols: List[Dict[str, Any]],
+    ranked: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    if not ranked:
+        return []
+
+    bundle: List[Dict[str, Any]] = []
+    seen_keys: set[tuple[str, str, int]] = set()
+    candidates = _surface_candidate_pool(root_path, query, symbols=symbols, ranked=ranked)
+
+    for surface in CHANGE_SURFACE_ORDER:
+        selected: Optional[Dict[str, Any]] = None
+        for candidate in candidates:
+            key = _symbol_key(candidate)
+            if key in seen_keys:
+                continue
+            if surface not in set(candidate.get("behavior_surfaces", [])):
+                continue
+            selected = candidate
+            break
+        if selected is None:
+            for candidate in candidates:
+                if surface not in set(candidate.get("behavior_surfaces", [])):
+                    continue
+                selected = candidate
+                break
+        if selected is not None:
+            seen_keys.add(_symbol_key(selected))
+            bundle.append(_surface_bundle_item(surface, selected))
+
+    if not bundle:
+        bundle.append(_surface_bundle_item("implementation", ranked[0]))
+
+    return bundle
+
+
 def get_context_read_plan(
     root: str | Path,
     query: str,
@@ -1223,11 +1477,14 @@ def get_context_read_plan(
     root_path = Path(root).resolve()
     symbols = _collect_symbols(root_path, ignore or ())
     steps = _query_steps(query)
+    ranked_for_bundle: List[Dict[str, Any]]
     if len(steps) == 1:
         ranked = _search_symbols_with_symbols(root_path, query, symbols=symbols, max_symbols=max_symbols)
+        ranked_for_bundle = ranked
         top_symbols = [_public_symbol(item) for item in ranked]
     else:
         top_symbols = search_symbols(root_path, query, max_symbols=max_symbols, ignore=ignore)
+        ranked_for_bundle = _search_symbols_with_symbols(root_path, steps[0], symbols=symbols, max_symbols=max(8, max_symbols))
 
     entries: List[Dict[str, Any]] = []
     for symbol in top_symbols:
@@ -1243,12 +1500,20 @@ def get_context_read_plan(
             }
         entries.append(entry)
 
+    surface_bundle = _build_surface_bundle(
+        root_path,
+        query,
+        symbols=symbols,
+        ranked=ranked_for_bundle,
+    )
+
     return {
         "query": query,
         "max_tokens": max_tokens,
         "max_symbols": max_symbols,
         "max_lines": max_lines,
         "entries": entries,
+        "surface_bundle": surface_bundle,
     }
 
 

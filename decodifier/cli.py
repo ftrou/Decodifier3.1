@@ -15,6 +15,7 @@ from .benchmark import (
     run_fixture_benchmark,
 )
 from .retrieval import get_context_read_plan, materialize_context, search_symbols
+from .tool_server import run_stdio_tool_server
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -31,6 +32,11 @@ def _build_parser() -> argparse.ArgumentParser:
         "--materialize",
         action="store_true",
         help="Render the planned context after listing symbols",
+    )
+    query_parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Print retrieval rationale and debug metadata for each symbol hit",
     )
 
     benchmark_parser = subparsers.add_parser("benchmark", help="Run retrieval benchmarks against fixture repos")
@@ -71,6 +77,12 @@ def _build_parser() -> argparse.ArgumentParser:
         default=str(DEFAULT_BENCHMARK_MARKDOWN_PATH),
         help="Path to write the markdown benchmark report",
     )
+
+    tool_server_parser = subparsers.add_parser(
+        "tool-server",
+        help="Run a stdio JSON tool server for local agent integration",
+    )
+    tool_server_parser.add_argument("--path", default=".", help="Repo root to serve tools against")
     return parser
 
 
@@ -84,6 +96,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         for symbol in symbols:
             print(symbol["symbol"])
             print(f"{symbol['path']}:{symbol['start_line']}-{symbol['end_line']}")
+            if args.debug:
+                surfaces = symbol.get("behavior_surfaces") or []
+                if surfaces:
+                    print(f"  surfaces: {', '.join(surfaces)}")
+                for reason in symbol.get("rationale") or []:
+                    print(f"  why: {reason}")
+                debug = symbol.get("debug") or {}
+                if debug:
+                    print(f"  debug: {json.dumps(debug, sort_keys=True)}")
 
         if args.materialize:
             plan = get_context_read_plan(
@@ -119,6 +140,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         Path(args.markdown_out).write_text(markdown, encoding="utf-8")
         print(markdown, end="")
         return 0
+
+    if args.command == "tool-server":
+        return run_stdio_tool_server(Path(args.path).resolve())
 
     parser.error(f"unknown command: {args.command}")
     return 2

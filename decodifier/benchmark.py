@@ -274,6 +274,24 @@ def _tokens_to_first_correct(context: Dict[str, Any], expected_symbols: Sequence
     return None
 
 
+def _tokens_to_full_change_surface(context: Dict[str, Any], expected_symbols: Sequence[str]) -> Optional[int]:
+    if not expected_symbols:
+        return None
+
+    expected_set = set(expected_symbols)
+    seen: set[str] = set()
+    token_total = 0
+    for section in context.get("sections", []):
+        token_total += int(section.get("token_count", retrieval._approx_token_count(section["content"])))
+        if section.get("title") != "Primary":
+            continue
+        if section["symbol"] in expected_set:
+            seen.add(section["symbol"])
+        if seen >= expected_set:
+            return token_total
+    return None
+
+
 def _status_for_case(case: Dict[str, Any]) -> str:
     if case["query_type"] == "no_answer":
         return "ignored" if case["no_answer_correct"] else "false_positive"
@@ -294,10 +312,22 @@ def _summarize_cases(cases: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
     token_counts = [case["token_count"] for case in cases]
     retrieved_context_total = sum(case["retrieved_context_count"] for case in positive_cases)
     relevant_context_total = sum(case["relevant_context_count"] for case in positive_cases)
+    anchor_set_recall_values = [case["anchor_set_recall"] for case in positive_cases if case["anchor_set_recall"] is not None]
+    surface_bundle_recall_values = [
+        case["surface_bundle_recall"]
+        for case in positive_cases
+        if case["surface_bundle_recall"] is not None
+    ]
     tokens_to_first_correct = [
         case["tokens_to_first_correct"]
         for case in positive_cases
         if case["tokens_to_first_correct"] is not None
+    ]
+    multi_anchor_cases = [case for case in positive_cases if len(case["expected_symbols"]) > 1]
+    tokens_to_full_change_surface = [
+        case["tokens_to_full_change_surface"]
+        for case in multi_anchor_cases
+        if case["tokens_to_full_change_surface"] is not None
     ]
 
     return {
@@ -313,6 +343,17 @@ def _summarize_cases(cases: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
         ),
         "false_positive_rate": _ratio(sum(1 for case in cases if case["false_positive"]), len(cases)),
         "average_tokens_to_first_correct": _mean(tokens_to_first_correct),
+        "anchor_set_recall": round(mean(anchor_set_recall_values), 4) if anchor_set_recall_values else None,
+        "surface_bundle_recall": round(mean(surface_bundle_recall_values), 4) if surface_bundle_recall_values else None,
+        "full_change_surface_rate": _ratio(
+            sum(1 for case in multi_anchor_cases if case["full_change_surface_found"]),
+            len(multi_anchor_cases),
+        ),
+        "paired_surface_top_hit": _ratio(
+            sum(1 for case in multi_anchor_cases if case["paired_surface_top_hit"]),
+            len(multi_anchor_cases),
+        ),
+        "average_tokens_to_full_change_surface": _mean(tokens_to_full_change_surface),
         "top1_accuracy": _ratio(sum(1 for case in cases if case["top1_correct"]), len(cases)),
         "topk_accuracy": _ratio(sum(1 for case in cases if case["topk_exact"]), len(cases)),
         "definition_hit_rate": _ratio(
@@ -411,6 +452,20 @@ def _run_engine_case(
     no_answer_correct = expected_list == [] and context_symbols == []
     relevant_context_count = sum(1 for symbol in context_symbols if symbol in expected_set)
     retrieved_context_count = len(context_symbols)
+    surface_bundle_symbols = [item["symbol"] for item in plan.get("surface_bundle", [])]
+    surface_bundle_relevant_count = len(set(surface_bundle_symbols) & expected_set)
+    anchor_set_recall = (
+        round(relevant_context_count / len(expected_list), 4)
+        if expected_list
+        else None
+    )
+    surface_bundle_recall = (
+        round(surface_bundle_relevant_count / len(expected_list), 4)
+        if expected_list
+        else None
+    )
+    full_change_surface_found = bool(expected_list) and all(symbol in context_symbols for symbol in expected_list)
+    paired_surface_top_hit = bool(len(expected_list) > 1 and context_symbols[:1] == expected_list[:1] and expected_list[1] in context_symbols)
 
     return {
         "query": query,
@@ -429,12 +484,18 @@ def _run_engine_case(
             if expected_list and retrieved_context_count
             else None
         ),
+        "anchor_set_recall": anchor_set_recall,
+        "surface_bundle_recall": surface_bundle_recall,
+        "full_change_surface_found": full_change_surface_found,
+        "paired_surface_top_hit": paired_surface_top_hit,
         "tokens_to_first_correct": _tokens_to_first_correct(context, expected_list),
+        "tokens_to_full_change_surface": _tokens_to_full_change_surface(context, expected_list),
         "false_positive": retrieved_context_count > 0 and relevant_context_count == 0,
         "token_count": context["token_count"],
         "line_count": context["line_count"],
         "truncated": context["truncated"],
         "plan_symbols": [entry["symbol"] for entry in plan.get("entries", [])],
+        "surface_bundle_symbols": surface_bundle_symbols,
     }
 
 
@@ -530,21 +591,26 @@ def render_fixture_benchmark_markdown(report: Dict[str, Any]) -> str:
         "",
         "## Aggregate",
         "",
-        "| Engine | Budget | Queries | Precision | Recall | False positives | Tokens to first correct | Top-1 | Top-K | Caller | Trace | No-answer | Avg context tokens |",
-        "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+        "| Engine | Budget | Queries | Precision | Recall | Anchor recall | Surface bundle | False positives | Tokens to first correct | Tokens to full set | Full change set | Paired top | Top-1 | Top-K | Caller | Trace | No-answer | Avg context tokens |",
+        "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     for engine_name in report["config"]["engines"]:
         for budget in report["config"]["token_budgets"]:
             summary = report["engines"][engine_name]["budgets"][str(budget)]["summary"]
             lines.append(
-                "| {engine} | {budget} | {query_count} | {precision} | {recall} | {false_positive} | {first_correct_tokens} | {top1} | {topk} | {caller} | {trace} | {no_answer} | {tokens} |".format(
+                "| {engine} | {budget} | {query_count} | {precision} | {recall} | {anchor_recall} | {bundle_recall} | {false_positive} | {first_correct_tokens} | {full_surface_tokens} | {full_surface_rate} | {paired_top} | {top1} | {topk} | {caller} | {trace} | {no_answer} | {tokens} |".format(
                     engine=ENGINE_LABELS.get(engine_name, engine_name),
                     budget=budget,
                     query_count=summary["query_count"],
                     precision=_format_metric(summary["context_precision"], percent=True),
                     recall=_format_metric(summary["context_recall"], percent=True),
+                    anchor_recall=_format_metric(summary["anchor_set_recall"], percent=True),
+                    bundle_recall=_format_metric(summary["surface_bundle_recall"], percent=True),
                     false_positive=_format_metric(summary["false_positive_rate"], percent=True),
                     first_correct_tokens=_format_metric(summary["average_tokens_to_first_correct"]),
+                    full_surface_tokens=_format_metric(summary["average_tokens_to_full_change_surface"]),
+                    full_surface_rate=_format_metric(summary["full_change_surface_rate"], percent=True),
+                    paired_top=_format_metric(summary["paired_surface_top_hit"], percent=True),
                     top1=_format_metric(summary["top1_accuracy"], percent=True),
                     topk=_format_metric(summary["topk_accuracy"], percent=True),
                     caller=_format_metric(summary["caller_hit_rate"], percent=True),

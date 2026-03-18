@@ -68,6 +68,9 @@ class SymbolHit(BaseModel):
     score: float
     container: Optional[str] = None
     trace_step: Optional[int] = None
+    behavior_surfaces: List[str] = Field(default_factory=list)
+    rationale: List[str] = Field(default_factory=list)
+    debug: Dict[str, Any] = Field(default_factory=dict)
     supporting_symbol: Optional[SupportingSymbol] = None
 
 
@@ -89,6 +92,7 @@ class ContextReadPlanResponse(BaseModel):
     max_symbols: int
     max_lines: int
     entries: List[SymbolHit] = Field(default_factory=list)
+    surface_bundle: List[Dict[str, Any]] = Field(default_factory=list)
 
 
 class MaterializeContextRequest(BaseModel):

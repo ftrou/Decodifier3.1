@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from io import StringIO
 
 import pytest
 
 from decodifier.benchmark import render_fixture_benchmark_markdown, run_fixture_benchmark
 from decodifier.cli import main as cli_main
 from decodifier.retrieval import get_context_read_plan, materialize_context, search_symbols
+from decodifier.tool_server import run_stdio_tool_server
 from engine.app.main import app
 from engine.app.schemas import ContextReadPlanRequest, MaterializeContextRequest, Project, SymbolSearchRequest
 
@@ -149,6 +151,37 @@ impl PermissionChecker {
 """,
         )
 
+    return root
+
+
+def _build_surface_repo(root: Path) -> Path:
+    _write(
+        root / "user/calc.py",
+        """def perform_calc_operation(lhs: int, rhs: int) -> int:
+    return lhs + rhs
+
+
+def calc_main() -> int:
+    current = 0
+    while True:
+        line = sys_readline()
+        if line == "exit":
+            return current
+        current = perform_calc_operation(current, 1)
+""",
+    )
+    _write(
+        root / "host/bridge.py",
+        """def run_simulated_calc_line(expr: str) -> str:
+    return expr
+
+
+def dispatch_command(command: str, expr: str) -> str:
+    if command == "calc":
+        return run_simulated_calc_line(expr)
+    return "unknown"
+""",
+    )
     return root
 
 
@@ -323,6 +356,32 @@ def test_search_symbols_promotes_permission_call_site(benchmark_repo: Path) -> N
     ]
 
 
+def test_search_symbols_include_rationale_and_surfaces(benchmark_repo: Path) -> None:
+    symbols = search_symbols(benchmark_repo, "where are permissions checked", max_symbols=3)
+
+    assert "caller" in symbols[0]["behavior_surfaces"]
+    assert any(reason.startswith("matched query tokens:") for reason in symbols[0]["rationale"])
+    assert symbols[0]["debug"]["matched_query_tokens"]
+
+
+def test_context_read_plan_exposes_surface_bundle(benchmark_repo: Path) -> None:
+    plan = get_context_read_plan(
+        benchmark_repo,
+        "where are permissions checked",
+        max_symbols=4,
+        max_tokens=800,
+        max_lines=80,
+    )
+
+    bundle_surfaces = [item["surface"] for item in plan["surface_bundle"]]
+    bundle_symbols = [item["symbol"] for item in plan["surface_bundle"]]
+
+    assert "caller" in bundle_surfaces
+    assert "implementation" in bundle_surfaces
+    assert "AuthController.login" in bundle_symbols
+    assert "PermissionChecker.check_permissions" in bundle_symbols
+
+
 def test_search_symbols_returns_empty_when_repo_has_no_good_answer(benchmark_repo: Path) -> None:
     symbols = search_symbols(benchmark_repo, "where is oauth callback state validated", max_symbols=5)
 
@@ -352,6 +411,20 @@ def _search_terms(query: str):
     symbols = search_symbols(repo, "where are permissions checked", max_symbols=3)
 
     assert symbols == []
+
+
+def test_generic_entrypoint_anchoring_groups_dispatch_and_simulation(tmp_path: Path) -> None:
+    repo = _build_surface_repo(tmp_path / "surface-repo")
+
+    symbols = search_symbols(repo, "simulate calc command", max_symbols=5)
+    plan = get_context_read_plan(repo, "simulate calc command", max_symbols=5, max_tokens=800, max_lines=80)
+
+    assert symbols[0]["symbol"] in {"dispatch_command", "run_simulated_calc_line"}
+    bundle_surfaces = {item["surface"] for item in plan["surface_bundle"]}
+    bundle_symbols = {item["symbol"] for item in plan["surface_bundle"]}
+    assert {"dispatcher", "simulation", "entrypoint"} & bundle_surfaces
+    assert "run_simulated_calc_line" in bundle_symbols
+    assert {"dispatch_command", "run_simulated_calc_line", "calc_main"} & bundle_symbols
 
 
 @pytest.mark.parametrize(
@@ -555,6 +628,26 @@ def test_cli_query_outputs_symbol_and_path(benchmark_repo: Path, capsys: pytest.
     assert "src/auth/service.py" in output
 
 
+def test_cli_query_debug_outputs_rationale(benchmark_repo: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    exit_code = cli_main(
+        [
+            "query",
+            "where are permissions checked",
+            "--path",
+            str(benchmark_repo),
+            "--max-symbols",
+            "1",
+            "--debug",
+        ]
+    )
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "surfaces:" in output
+    assert "why: matched query tokens:" in output
+    assert "debug:" in output
+
+
 def test_cli_benchmark_writes_outputs(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
@@ -579,3 +672,22 @@ def test_cli_benchmark_writes_outputs(
     assert snapshot_path.exists()
     assert markdown_path.exists()
     assert "Retrieval Fixture Benchmark" in output
+
+
+def test_stdio_tool_server_round_trip(benchmark_repo: Path) -> None:
+    request_stream = StringIO(
+        json.dumps({"id": 1, "tool": "search_symbols", "arguments": {"query": "where is refresh token generated", "max_symbols": 2}})
+        + "\n"
+        + json.dumps({"id": 2, "tool": "get_context_read_plan", "arguments": {"query": "where are permissions checked", "max_symbols": 3}})
+        + "\n"
+    )
+    response_stream = StringIO()
+
+    exit_code = run_stdio_tool_server(benchmark_repo, instream=request_stream, outstream=response_stream)
+    responses = [json.loads(line) for line in response_stream.getvalue().splitlines() if line.strip()]
+
+    assert exit_code == 0
+    assert responses[0]["ok"] is True
+    assert responses[0]["result"]["symbols"][0]["symbol"] == "AuthService.generate_refresh_token"
+    assert responses[1]["ok"] is True
+    assert responses[1]["result"]["surface_bundle"]

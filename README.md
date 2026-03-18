@@ -1,6 +1,6 @@
 # DeCodifier v3.1 - Developer Preview (Alpha)
 
-DeCodifier gets code agents to the right method, caller, and framework entrypoint first.
+DeCodifier gets code agents to the full behavioral change surface first.
 
 DeCodifier is a local AI coding engine with deterministic method-first retrieval that lets LLMs
 safely inspect and modify real projects. It provides the file operations, project registry, and
@@ -17,6 +17,8 @@ DeCodifier now exposes a deterministic retrieval layer for agent-friendly code l
 - `search_symbols(query)` for ranked method/class hits
 - `get_context_read_plan(query)` for bounded read planning
 - `materialize_context(plan)` for budgeted context rendering
+- behavior-surface bundles for entrypoints, callers, implementations, guards, dispatchers, REPLs, simulators, and bridges
+- per-hit rationale/debug metadata so agents can inspect why a symbol ranked where it did
 
 Current three-repo benchmark snapshot:
 
@@ -26,8 +28,16 @@ Current three-repo benchmark snapshot:
 | Embedding baseline | 36% | 69% | 28% |
 | Lexical baseline | 28% | 62% | 44% |
 
+Current change-surface benchmark snapshot:
+
+| System | Anchor Recall | Surface-Bundle Recall | Full Change-Set Rate | False Positives |
+| --- | ---: | ---: | ---: | ---: |
+| DeCodifier | 100% | 100% | 100% | 0% |
+| Embedding baseline | 85% | 0% | 20% | 28% |
+| Lexical baseline | 65% | 0% | 20% | 44% |
+
 On the current three-repo benchmark suite, DeCodifier outperforms lexical and embedding baselines
-on precision, recall, caller/trace handling, and false-positive control.
+on precision, recall, caller/trace handling, full change-surface retrieval, and false-positive control.
 
 ### Codex Dogfood Run
 
@@ -47,6 +57,23 @@ And benchmark the static fixture repos with DeCodifier plus the lexical and embe
 
 ```bash
 decodifier benchmark
+```
+
+The benchmark now tracks change-oriented retrieval quality as well as first-hit accuracy, including
+anchor-set recall, surface-bundle recall, full change-surface success, and tokens to the full
+retrieval set.
+
+For local agent integration without running the FastAPI server, you can expose the retrieval tools
+over stdio JSON:
+
+```bash
+decodifier tool-server --path /path/to/repo
+```
+
+Send newline-delimited requests like:
+
+```json
+{"id":1,"tool":"search_symbols","arguments":{"query":"where are permissions checked","max_symbols":3}}
 ```
 
 ## Quickstart
@@ -122,5 +149,3 @@ Not yet ready for:
 
 This is the alpha. Expect rough edges.
 Open issues, PRs, crashes, and questions welcome.
-
-
