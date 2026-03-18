@@ -29,6 +29,21 @@ Current three-repo benchmark snapshot:
 On the current three-repo benchmark suite, DeCodifier outperforms lexical and embedding baselines
 on precision, recall, caller/trace handling, and false-positive control.
 
+### Codex Dogfood Run
+
+In a recent Codex-guided change on a separate local systems project, the task was to upgrade a
+calculator from basic arithmetic to a broader integer math feature set.
+
+DeCodifier changed the shape of that edit. Instead of stopping at the obvious calculator source
+file, it surfaced the real behavioral anchors: the interactive calculator implementation and the
+host-side mirrored logic that simulates and routes calculator behavior. That changed my plan as
+Codex from a likely single-file patch into a coordinated update across both execution paths, with
+focused verification to keep them aligned.
+
+Practically, that meant DeCodifier made me less likely to trust the first plausible file and more
+likely to patch the actual caller and framework-relevant behavior. The result was a safer change:
+new math operations were added without drifting the tool-facing simulation away from the real app.
+
 You can also test retrieval locally from the CLI:
 
 ```bash
