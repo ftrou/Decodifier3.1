@@ -20,14 +20,6 @@ DeCodifier now exposes a deterministic retrieval layer for agent-friendly code l
 - behavior-surface bundles for entrypoints, callers, implementations, guards, dispatchers, REPLs, simulators, and bridges
 - per-hit rationale/debug metadata so agents can inspect why a symbol ranked where it did
 
-Current three-repo benchmark snapshot:
-
-| System | Context Precision | Recall | False Positives |
-| --- | ---: | ---: | ---: |
-| DeCodifier | 58% | 100% | 0% |
-| Embedding baseline | 36% | 69% | 28% |
-| Lexical baseline | 28% | 62% | 44% |
-
 Current change-surface benchmark snapshot:
 
 | System | Anchor Recall | Surface-Bundle Recall | Full Change-Set Rate | False Positives |
@@ -35,6 +27,14 @@ Current change-surface benchmark snapshot:
 | DeCodifier | 100% | 100% | 100% | 0% |
 | Embedding baseline | 85% | 0% | 20% | 28% |
 | Lexical baseline | 65% | 0% | 20% | 44% |
+
+Current three-repo benchmark snapshot:
+
+| System | Context Precision | Recall | False Positives |
+| --- | ---: | ---: | ---: |
+| DeCodifier | 58% | 100% | 0% |
+| Embedding baseline | 36% | 69% | 28% |
+| Lexical baseline | 28% | 62% | 44% |
 
 On the current three-repo benchmark suite, DeCodifier outperforms lexical and embedding baselines
 on precision, recall, caller/trace handling, full change-surface retrieval, and false-positive control.
