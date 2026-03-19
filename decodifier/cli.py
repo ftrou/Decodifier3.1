@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from typing import Sequence
 
+from .adapters import render_claude_code_adapter, render_codex_adapter
 from .benchmark import (
     DEFAULT_BENCHMARK_MARKDOWN_PATH,
     DEFAULT_BENCHMARK_SNAPSHOT_PATH,
@@ -14,6 +16,7 @@ from .benchmark import (
     render_fixture_benchmark_markdown,
     run_fixture_benchmark,
 )
+from .mcp_server import run_stdio_mcp_server
 from .retrieval import get_context_read_plan, materialize_context, search_symbols
 from .tool_server import run_stdio_tool_server
 
@@ -83,6 +86,31 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Run a stdio JSON tool server for local agent integration",
     )
     tool_server_parser.add_argument("--path", default=".", help="Repo root to serve tools against")
+
+    mcp_server_parser = subparsers.add_parser(
+        "mcp-server",
+        help="Run a stdio MCP server for Codex, Claude Code, and other MCP clients",
+    )
+    mcp_server_parser.add_argument("--path", default=".", help="Repo root to serve tools against")
+
+    adapter_parser = subparsers.add_parser(
+        "adapter",
+        help="Print MCP adapter snippets for agent clients",
+    )
+    adapter_parser.add_argument("target", choices=["codex", "claude-code"], help="Adapter target")
+    adapter_parser.add_argument("--path", default=".", help="Repo root to serve tools against")
+    adapter_parser.add_argument("--name", default="decodifier", help="MCP server name")
+    adapter_parser.add_argument(
+        "--scope",
+        choices=["local", "project", "user"],
+        default="project",
+        help="Claude Code MCP scope",
+    )
+    adapter_parser.add_argument(
+        "--python",
+        default=sys.executable,
+        help="Python executable used to launch the MCP server",
+    )
     return parser
 
 
@@ -143,6 +171,33 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.command == "tool-server":
         return run_stdio_tool_server(Path(args.path).resolve())
+
+    if args.command == "mcp-server":
+        return run_stdio_mcp_server(Path(args.path).resolve())
+
+    if args.command == "adapter":
+        repo_root = Path(args.path).resolve()
+        if args.target == "codex":
+            print(
+                render_codex_adapter(
+                    repo_root,
+                    server_name=args.name,
+                    python_executable=args.python,
+                ),
+                end="",
+            )
+            return 0
+        if args.target == "claude-code":
+            print(
+                render_claude_code_adapter(
+                    repo_root,
+                    server_name=args.name,
+                    scope=args.scope,
+                    python_executable=args.python,
+                ),
+                end="",
+            )
+            return 0
 
     parser.error(f"unknown command: {args.command}")
     return 2

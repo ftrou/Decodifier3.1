@@ -3,45 +3,131 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, Iterable, TextIO
+from typing import Any, Dict, TextIO
 
 from .retrieval import get_context_read_plan, materialize_context, search_symbols
 
-TOOL_SERVER_TOOLS = [
+MCP_TOOL_DEFINITIONS = [
     {
         "name": "search_symbols",
+        "title": "Search Symbols",
         "description": "Search for the most relevant code symbols for a natural-language query.",
-        "arguments": {
-            "query": "string",
-            "max_symbols": "integer (optional)",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Natural-language code query to search for.",
+                },
+                "max_symbols": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Maximum number of ranked symbols to return.",
+                },
+            },
+            "required": ["query"],
+            "additionalProperties": False,
+        },
+        "annotations": {
+            "readOnlyHint": True,
+            "openWorldHint": False,
         },
     },
     {
         "name": "get_context_read_plan",
+        "title": "Get Context Read Plan",
         "description": "Build a bounded read plan for a natural-language code query.",
-        "arguments": {
-            "query": "string",
-            "max_tokens": "integer (optional)",
-            "max_symbols": "integer (optional)",
-            "max_lines": "integer (optional)",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Natural-language code query to plan context for.",
+                },
+                "max_tokens": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Maximum context token budget for the plan.",
+                },
+                "max_symbols": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Maximum number of primary symbols to plan around.",
+                },
+                "max_lines": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Maximum number of lines to materialize per plan.",
+                },
+            },
+            "required": ["query"],
+            "additionalProperties": False,
+        },
+        "annotations": {
+            "readOnlyHint": True,
+            "openWorldHint": False,
         },
     },
     {
         "name": "materialize_context",
+        "title": "Materialize Context",
         "description": "Render a previously generated read plan into bounded code context.",
-        "arguments": {
-            "plan": "object",
-            "max_tokens": "integer (optional)",
-            "max_symbols": "integer (optional)",
-            "max_lines": "integer (optional)",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "plan": {
+                    "type": "object",
+                    "description": "Plan object returned from get_context_read_plan.",
+                },
+                "max_tokens": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Maximum context token budget for rendered output.",
+                },
+                "max_symbols": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Maximum number of symbols to render from the plan.",
+                },
+                "max_lines": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Maximum number of lines to render from the plan.",
+                },
+            },
+            "required": ["plan"],
+            "additionalProperties": False,
+        },
+        "annotations": {
+            "readOnlyHint": True,
+            "openWorldHint": False,
         },
     },
 ]
 
+TOOL_SERVER_TOOLS = [
+    {
+        "name": tool["name"],
+        "description": tool["description"],
+        "arguments": {
+            key: schema.get("type", "object")
+            + (" (optional)" if key not in tool["inputSchema"].get("required", []) else "")
+            for key, schema in tool["inputSchema"].get("properties", {}).items()
+        },
+    }
+    for tool in MCP_TOOL_DEFINITIONS
+]
 
-def _handle_tool_request(root: Path, request: Dict[str, Any]) -> Any:
-    tool = request.get("tool")
-    args = request.get("arguments") or {}
+
+def _optional_int(arguments: Dict[str, Any], key: str) -> int | None:
+    value = arguments.get(key)
+    if value is None:
+        return None
+    return int(value)
+
+
+def handle_tool_call(root: Path, tool: str, arguments: Dict[str, Any] | None = None) -> Any:
+    args = arguments or {}
     if tool == "list_tools":
         return {"tools": TOOL_SERVER_TOOLS}
     if tool == "search_symbols":
@@ -64,11 +150,15 @@ def _handle_tool_request(root: Path, request: Dict[str, Any]) -> Any:
         return materialize_context(
             root,
             args["plan"],
-            max_tokens=args.get("max_tokens"),
-            max_symbols=args.get("max_symbols"),
-            max_lines=args.get("max_lines"),
+            max_tokens=_optional_int(args, "max_tokens"),
+            max_symbols=_optional_int(args, "max_symbols"),
+            max_lines=_optional_int(args, "max_lines"),
         )
     raise ValueError(f"unknown tool: {tool}")
+
+
+def _handle_tool_request(root: Path, request: Dict[str, Any]) -> Any:
+    return handle_tool_call(root, request.get("tool"), request.get("arguments"))
 
 
 def _response(payload: Dict[str, Any], *, outstream: TextIO) -> None:
@@ -107,4 +197,3 @@ def run_stdio_tool_server(
             )
 
     return 0
-

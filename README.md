@@ -20,7 +20,25 @@ DeCodifier now exposes a deterministic retrieval layer for agent-friendly code l
 - behavior-surface bundles for entrypoints, callers, implementations, guards, dispatchers, REPLs, simulators, and bridges
 - per-hit rationale/debug metadata so agents can inspect why a symbol ranked where it did
 
-Current change-surface benchmark snapshot:
+## Benchmarks
+
+DeCodifier is built around a simple idea:
+
+Code agents usually need the full behavioral change surface first, not just the right file.
+
+That means retrieving the set of implementation surfaces that must stay aligned in a real change,
+such as the entrypoint, the caller, the implementation, the guard, and supporting surfaces like a
+bridge, simulation, or REPL path.
+
+### Repo Set
+
+The current benchmark suite covers three realistic repo archetypes:
+
+- `harbor_api` - clean Python auth service
+- `atlas_workspace` - noisy multi-language workspace
+- `fastapi_full_stack_backend` - FastAPI backend with dependency-injection auth
+
+### Change-Surface Headline
 
 | System | Anchor Recall | Surface-Bundle Recall | Full Change-Set Rate | False Positives |
 | --- | ---: | ---: | ---: | ---: |
@@ -28,7 +46,7 @@ Current change-surface benchmark snapshot:
 | Embedding baseline | 85% | 0% | 20% | 28% |
 | Lexical baseline | 65% | 0% | 20% | 44% |
 
-Current three-repo benchmark snapshot:
+### Retrieval Quality Headline
 
 | System | Context Precision | Recall | False Positives |
 | --- | ---: | ---: | ---: |
@@ -36,16 +54,137 @@ Current three-repo benchmark snapshot:
 | Embedding baseline | 36% | 69% | 28% |
 | Lexical baseline | 28% | 62% | 44% |
 
-On the current three-repo benchmark suite, DeCodifier outperforms lexical and embedding baselines
-on precision, recall, caller/trace handling, full change-surface retrieval, and false-positive control.
+### Behavioral Correctness Headline
 
-### Codex Dogfood Run
+Across the current benchmark repos, DeCodifier also achieves:
 
-In a recent Codex-guided change on a separate local systems project, the task was to upgrade a calculator from basic arithmetic to a broader integer-math feature set.
+- 100% top-1 correctness
+- 100% top-k correctness
+- 100% caller correctness
+- 100% trace correctness
+- 100% no-answer correctness
 
-DeCodifier changed the shape of the edit. Instead of stopping at the obvious calculator source file, it surfaced the real behavioral anchors: the interactive calculator implementation and the host-side mirrored logic that simulates and routes calculator behavior. That turned what looked like a single-file patch into a coordinated update across both execution paths.
+The lexical baseline falls to:
 
-As a result, Codex was less likely to trust the first plausible file and more likely to patch the actual behavior surfaces that needed to stay aligned. The final change added new math operations while keeping the tool-facing simulation in sync with the real calculator implementation, with focused verification on both sides. In that run, DeCodifier surfaced both the guest calculator implementation and the mirrored bridge logic, which prevented a one-sided patch.
+- 39% top-1 correctness
+- 33% top-k correctness
+- 0% caller correctness
+- 0% trace correctness
+- 0% no-answer correctness
+
+### What These Metrics Mean
+
+- `Anchor Recall` - whether retrieval surfaced the main behavioral anchor for the task
+- `Surface-Bundle Recall` - whether retrieval returned the bundle of surfaces that should be changed together
+- `Full Change-Set Rate` - whether an agent could recover the complete coordinated change surface, not just one relevant snippet
+- `False Positives` - how often retrieval confidently returned junk
+
+This matters because code agents often fail by finding one plausible file and missing the rest of
+the change surface. DeCodifier is designed to return the full behavioral bundle instead.
+
+### Why This Is Different
+
+Traditional retrieval usually operates at the file or chunk level.
+
+DeCodifier operates at the behavior level:
+
+- method-first retrieval
+- caller anchoring
+- framework entrypoint detection
+- trace query handling
+- grouped surface bundles
+- strict no-answer protection
+
+That makes it better suited for questions like:
+
+- `where is token validation enforced`
+- `where are permissions checked`
+- `trace login -> token validation`
+- `what surfaces need to change together`
+
+### Codex Dogfood Run: Coordinated Calculator Change on a Real Repo
+
+A recent live Codex + MCP run used DeCodifier on a separate local OS project to expand a calculator from basic arithmetic to a broader integer-math feature set.
+
+**What DeCodifier changed**
+
+Without DeCodifier, this task looked like a likely single-file patch in the guest calculator source.
+
+With DeCodifier retrieval first, Codex surfaced the actual **behavioral change surface**:
+
+- the guest calculator implementation in `user/calc.c`
+- the mirrored host-side calculator logic in `model/qwen_chat.py`
+- the user-facing capability and help text that needed to stay aligned
+
+That changed the plan from “patch the obvious file” to “patch the full surface that defines calculator behavior across guest and host paths.”
+
+**Why this mattered**
+
+The calculator logic existed in more than one place. Updating only the guest implementation would have created drift between:
+
+- the real interactive calculator in the OS
+- the host-side mirrored and simulated path used by the bridge
+
+DeCodifier made Codex less likely to stop at the first plausible file and more likely to update the full behavior surface safely.
+
+**What changed**
+
+The final patch added a broader integer-math feature set and kept both execution paths aligned, including:
+
+- new unary helpers
+- new binary and bitwise helpers
+- parser and alias updates
+- help text updates
+- host-side mirrored behavior updates
+
+The bridge transport itself did not require protocol changes. The important work was keeping the behavior layers aligned above it.
+
+**Verification**
+
+Focused verification passed:
+
+- `python3 -m py_compile model/qwen_chat.py`
+- `make kernel.elf`
+- a targeted calculator harness covering valid, chained, function-style, and invalid or overflow cases
+
+Note: this was a focused verification pass, not a full QEMU or full OS regression run. In that environment, direct import of the host bridge module was blocked by a missing `torch` dependency, so the calculator verification used a calc-only extracted harness from the mirrored Python logic.
+
+**Takeaway**
+
+This is the kind of change DeCodifier is built for: not just finding a relevant file, but recovering the **full behavioral change surface** that a code agent needs to modify together.
+
+See [docs/case_studies.md](docs/case_studies.md) for the longer case-study version.
+
+### Token Budgets
+
+The benchmark runs under fixed token budgets and evaluates the actual materialized context returned
+to the model, not just raw search hits. Current results are stable across `2000`, `1000`, and
+`500` token budgets.
+
+The goal is not just to retrieve something relevant. The goal is to retrieve the right behavioral
+surface under tight context limits.
+
+### Current Limitations
+
+This is still an early benchmark suite.
+
+Current strengths:
+
+- deterministic structural retrieval
+- method / caller / entrypoint ranking
+- change-surface recovery
+- strict no-answer behavior
+
+What still needs broader validation:
+
+- more external public repos
+- larger monorepos
+- additional frameworks beyond the current benchmark set
+
+### Bottom Line
+
+DeCodifier is not just optimized to find the right method. It is optimized to recover the full
+behavioral change surface a code agent must modify together.
 
 You can also test retrieval locally from the CLI:
 
@@ -63,8 +202,27 @@ The benchmark now tracks change-oriented retrieval quality as well as first-hit 
 anchor-set recall, surface-bundle recall, full change-surface success, and tokens to the full
 retrieval set.
 
-For local agent integration without running the FastAPI server, you can expose the retrieval tools
-over stdio JSON:
+For Codex, Claude Code, and other MCP-capable agents, you can expose the retrieval tools over
+stdio MCP:
+
+```bash
+decodifier mcp-server --path /path/to/repo
+```
+
+You can also print ready-to-use adapter snippets for Codex and Claude Code:
+
+```bash
+decodifier adapter codex --path /path/to/repo
+decodifier adapter claude-code --path /path/to/repo
+```
+
+The adapter output includes:
+
+- a one-line install command for the target agent
+- a config snippet for `~/.codex/config.toml` or `.mcp.json`
+- a short instruction block you can drop into `AGENTS.md` or `CLAUDE.md`
+
+For legacy local integrations, the older newline-delimited JSON tool server is still available:
 
 ```bash
 decodifier tool-server --path /path/to/repo

@@ -1,6 +1,7 @@
 # DeCodifier Docs
 
 - introduction.md
+- case_studies.md
 - architecture.md
 - tool_reference.md
 - llm_integration_guide.md

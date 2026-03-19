@@ -8,6 +8,7 @@ import pytest
 
 from decodifier.benchmark import render_fixture_benchmark_markdown, run_fixture_benchmark
 from decodifier.cli import main as cli_main
+from decodifier.mcp_server import run_stdio_mcp_server
 from decodifier.retrieval import get_context_read_plan, materialize_context, search_symbols
 from decodifier.tool_server import run_stdio_tool_server
 from engine.app.main import app
@@ -21,6 +22,14 @@ FIXTURE_REPO_SPECS_BY_NAME = {repo["name"]: repo for repo in FIXTURE_REPOS_MANIF
 def _write(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
+
+
+def _jsonrpc_line(payload: dict[str, object]) -> str:
+    return json.dumps(payload, sort_keys=True) + "\n"
+
+
+def _parse_jsonrpc_lines(payload: str) -> list[dict[str, object]]:
+    return [json.loads(line) for line in payload.splitlines() if line.strip()]
 
 
 def _build_benchmark_repo(root: Path) -> Path:
@@ -674,6 +683,46 @@ def test_cli_benchmark_writes_outputs(
     assert "Retrieval Fixture Benchmark" in output
 
 
+def test_cli_adapter_outputs_codex_snippet(
+    benchmark_repo: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    exit_code = cli_main(["adapter", "codex", "--path", str(benchmark_repo), "--name", "decodifier"])
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "Codex MCP Adapter" in output
+    assert "codex mcp add decodifier --" in output
+    assert "[mcp_servers.decodifier]" in output
+    assert "-m decodifier.cli mcp-server --path" in output
+
+
+def test_cli_adapter_outputs_claude_code_snippet(
+    benchmark_repo: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    exit_code = cli_main(
+        [
+            "adapter",
+            "claude-code",
+            "--path",
+            str(benchmark_repo),
+            "--name",
+            "decodifier",
+            "--scope",
+            "project",
+        ]
+    )
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "Claude Code MCP Adapter" in output
+    assert "claude mcp add decodifier --transport stdio --scope project --" in output
+    assert '"mcpServers"' in output
+    assert '"command"' in output
+    assert '"args"' in output
+
+
 def test_stdio_tool_server_round_trip(benchmark_repo: Path) -> None:
     request_stream = StringIO(
         json.dumps({"id": 1, "tool": "search_symbols", "arguments": {"query": "where is refresh token generated", "max_symbols": 2}})
@@ -691,3 +740,47 @@ def test_stdio_tool_server_round_trip(benchmark_repo: Path) -> None:
     assert responses[0]["result"]["symbols"][0]["symbol"] == "AuthService.generate_refresh_token"
     assert responses[1]["ok"] is True
     assert responses[1]["result"]["surface_bundle"]
+
+
+def test_stdio_mcp_server_round_trip(benchmark_repo: Path) -> None:
+    request_stream = StringIO(
+        _jsonrpc_line(
+            {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": "2025-03-26",
+                    "capabilities": {},
+                    "clientInfo": {"name": "pytest", "version": "1.0"},
+                },
+            }
+        )
+        + _jsonrpc_line({"jsonrpc": "2.0", "method": "notifications/initialized"})
+        + _jsonrpc_line({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}})
+        + _jsonrpc_line(
+            {
+                "jsonrpc": "2.0",
+                "id": 3,
+                "method": "tools/call",
+                "params": {
+                    "name": "search_symbols",
+                    "arguments": {"query": "where is refresh token generated", "max_symbols": 2},
+                },
+            }
+        )
+    )
+    response_stream = StringIO()
+
+    exit_code = run_stdio_mcp_server(benchmark_repo, instream=request_stream, outstream=response_stream)
+    responses = _parse_jsonrpc_lines(response_stream.getvalue())
+
+    assert exit_code == 0
+    assert responses[0]["result"]["capabilities"]["tools"]["listChanged"] is False
+    assert {tool["name"] for tool in responses[1]["result"]["tools"]} == {
+        "search_symbols",
+        "get_context_read_plan",
+        "materialize_context",
+    }
+    assert responses[2]["result"]["isError"] is False
+    assert responses[2]["result"]["structuredContent"]["symbols"][0]["symbol"] == "AuthService.generate_refresh_token"
