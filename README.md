@@ -206,21 +206,26 @@ For Codex, Claude Code, and other MCP-capable agents, you can expose the retriev
 stdio MCP:
 
 ```bash
-decodifier mcp-server --path /path/to/repo
+decodifier mcp-server
 ```
+
+Run the agent from the root of the repo you want DeCodifier to index. If you need to target a
+different repo explicitly, pass `--path /path/to/repo`.
 
 You can also print ready-to-use adapter snippets for Codex and Claude Code:
 
 ```bash
-decodifier adapter codex --path /path/to/repo
-decodifier adapter claude-code --path /path/to/repo
+decodifier adapter codex
+decodifier adapter claude-code
 ```
 
 The adapter output includes:
 
 - a one-line install command for the target agent
-- a config snippet for `~/.codex/config.toml` or `.mcp.json`
+- a publish-safe config snippet for `~/.codex/config.toml` or `.mcp.json`
 - a short instruction block you can drop into `AGENTS.md` or `CLAUDE.md`
+
+Pass `--path /path/to/repo` only when you want to pin the config to a specific local checkout.
 
 For legacy local integrations, the older newline-delimited JSON tool server is still available:
 

@@ -684,29 +684,28 @@ def test_cli_benchmark_writes_outputs(
 
 
 def test_cli_adapter_outputs_codex_snippet(
-    benchmark_repo: Path,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    exit_code = cli_main(["adapter", "codex", "--path", str(benchmark_repo), "--name", "decodifier"])
+    exit_code = cli_main(["adapter", "codex", "--name", "decodifier"])
     output = capsys.readouterr().out
 
     assert exit_code == 0
     assert "Codex MCP Adapter" in output
     assert "codex mcp add decodifier --" in output
     assert "[mcp_servers.decodifier]" in output
-    assert "-m decodifier.cli mcp-server --path" in output
+    assert 'command = "/path/to/python"' in output
+    assert '"-m", "decodifier.cli", "mcp-server"' in output
+    assert "--path" not in output
+    assert "Run Codex from the repo root you want DeCodifier to index." in output
 
 
 def test_cli_adapter_outputs_claude_code_snippet(
-    benchmark_repo: Path,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     exit_code = cli_main(
         [
             "adapter",
             "claude-code",
-            "--path",
-            str(benchmark_repo),
             "--name",
             "decodifier",
             "--scope",
@@ -719,8 +718,23 @@ def test_cli_adapter_outputs_claude_code_snippet(
     assert "Claude Code MCP Adapter" in output
     assert "claude mcp add decodifier --transport stdio --scope project --" in output
     assert '"mcpServers"' in output
-    assert '"command"' in output
+    assert '"command": "/path/to/python"' in output
     assert '"args"' in output
+    assert "--path" not in output
+    assert "Run Claude Code from the repo root you want DeCodifier to index." in output
+
+
+def test_cli_adapter_outputs_local_pinned_codex_snippet(
+    benchmark_repo: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    exit_code = cli_main(["adapter", "codex", "--path", str(benchmark_repo), "--name", "decodifier"])
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "--path" in output
+    assert str(benchmark_repo) in output
+    assert "This config is pinned to a specific local repo path." in output
 
 
 def test_stdio_tool_server_round_trip(benchmark_repo: Path) -> None:

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
 from pathlib import Path
 from typing import Sequence
 
@@ -91,14 +90,14 @@ def _build_parser() -> argparse.ArgumentParser:
         "mcp-server",
         help="Run a stdio MCP server for Codex, Claude Code, and other MCP clients",
     )
-    mcp_server_parser.add_argument("--path", default=".", help="Repo root to serve tools against")
+    mcp_server_parser.add_argument("--path", default=None, help="Repo root to serve tools against")
 
     adapter_parser = subparsers.add_parser(
         "adapter",
         help="Print MCP adapter snippets for agent clients",
     )
     adapter_parser.add_argument("target", choices=["codex", "claude-code"], help="Adapter target")
-    adapter_parser.add_argument("--path", default=".", help="Repo root to serve tools against")
+    adapter_parser.add_argument("--path", default=None, help="Repo root to serve tools against")
     adapter_parser.add_argument("--name", default="decodifier", help="MCP server name")
     adapter_parser.add_argument(
         "--scope",
@@ -108,7 +107,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     adapter_parser.add_argument(
         "--python",
-        default=sys.executable,
+        default=None,
         help="Python executable used to launch the MCP server",
     )
     return parser
@@ -173,10 +172,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         return run_stdio_tool_server(Path(args.path).resolve())
 
     if args.command == "mcp-server":
-        return run_stdio_mcp_server(Path(args.path).resolve())
+        repo_root = Path(args.path).resolve() if args.path else Path.cwd().resolve()
+        return run_stdio_mcp_server(repo_root)
 
     if args.command == "adapter":
-        repo_root = Path(args.path).resolve()
+        repo_root = Path(args.path).resolve() if args.path else None
         if args.target == "codex":
             print(
                 render_codex_adapter(
